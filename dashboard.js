@@ -135,6 +135,8 @@ const INTERNAL_EXTENSIONS = [
     'Crace',
     'Lyneham - Rec 1',
     'Crace - Rec 1',
+    'Crace - Rec 2',
+    'Crace Office',
     'Nurse 5 (TR1)',
     'Nurse 2',
     'Nurse Consult',
