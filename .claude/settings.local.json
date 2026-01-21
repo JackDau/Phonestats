@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"python ''c:\\\\Users\\\\jackd\\\\OneDrive - YourGP\\\\Claude\\\\Phone Dashboard\\\\check_vasectomy.py''\")",
+      "Bash(powershell -Command \"python ''c:\\\\Users\\\\jackd\\\\OneDrive - YourGP\\\\Claude\\\\Phone Dashboard\\\\query_pickup.py''\")",
+      "Bash(powershell -Command \"python ''c:\\\\Users\\\\jackd\\\\OneDrive - YourGP\\\\Claude\\\\Phone Dashboard\\\\check_fields.py''\")",
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
+    ]
+  }
+}

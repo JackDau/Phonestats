@@ -524,6 +524,9 @@ function processAndDisplay() {
     // Update hourly chart
     updateHourlyChart(filteredData);
 
+    // Update site breakdown
+    updateSiteBreakdown(incomingCalls);
+
     // Update daily table
     updateDailyTable();
 
@@ -598,6 +601,78 @@ function updateSummaryMetrics(calls) {
     // Out of hours calls (uses rawData, not filtered)
     const outOfHours = countOutOfHoursCalls();
     document.getElementById('outOfHoursCalls').textContent = outOfHours;
+}
+
+function updateSiteBreakdown(calls) {
+    // Define sites and their OfficeName patterns
+    const sites = [
+        { name: 'Crace', patterns: ['crace'] },
+        { name: 'Denman', patterns: ['denman'] },
+        { name: 'Lyneham', patterns: ['lyneham'] }
+    ];
+
+    // Calculate metrics for each site
+    function calcSiteMetrics(siteCalls) {
+        const total = siteCalls.length;
+        const answered = siteCalls.filter(c => c.TimeToAnswer > 0).length;
+        const missed = siteCalls.filter(c => c.queueName && (!c.TimeToAnswer || c.TimeToAnswer === 0)).length;
+        const missedPct = total > 0 ? ((missed / total) * 100).toFixed(1) : 0;
+
+        const answeredCalls = siteCalls.filter(c => c.TimeToAnswer > 0);
+        const avgWait = answeredCalls.length > 0
+            ? answeredCalls.reduce((sum, c) => sum + (c.TimeToAnswer || 0), 0) / answeredCalls.length
+            : null;
+        const maxWait = answeredCalls.length > 0
+            ? Math.max(...answeredCalls.map(c => c.TimeToAnswer || 0))
+            : null;
+
+        const callLengths = answeredCalls
+            .map(c => (c.CallDuration || 0) - (c.TimeToAnswer || 0))
+            .filter(l => l > 0);
+        const avgCallLength = callLengths.length > 0
+            ? callLengths.reduce((a, b) => a + b, 0) / callLengths.length
+            : null;
+
+        return { total, answered, missed, missedPct, avgWait, maxWait, avgCallLength };
+    }
+
+    let html = '';
+
+    // Calculate for each site
+    sites.forEach(site => {
+        const siteCalls = calls.filter(c => {
+            const office = (c.OfficeName || '').toLowerCase();
+            return site.patterns.some(p => office.includes(p));
+        });
+
+        const metrics = calcSiteMetrics(siteCalls);
+
+        html += '<tr>';
+        html += `<td style="text-align: left; font-weight: 500;">${site.name}</td>`;
+        html += `<td>${metrics.total}</td>`;
+        html += `<td>${metrics.answered}</td>`;
+        html += `<td style="color: ${metrics.missed > 0 ? '#e74c3c' : 'inherit'};">${metrics.missed}</td>`;
+        html += `<td style="color: ${parseFloat(metrics.missedPct) > 5 ? '#e74c3c' : 'inherit'};">${metrics.missedPct}%</td>`;
+        html += `<td>${formatTime(metrics.avgWait)}</td>`;
+        html += `<td>${formatTime(metrics.maxWait)}</td>`;
+        html += `<td>${formatTime(metrics.avgCallLength)}</td>`;
+        html += '</tr>';
+    });
+
+    // Add total row
+    const totalMetrics = calcSiteMetrics(calls);
+    html += '<tr style="font-weight: 600; background: #f8f9fa;">';
+    html += '<td style="text-align: left;">Total</td>';
+    html += `<td>${totalMetrics.total}</td>`;
+    html += `<td>${totalMetrics.answered}</td>`;
+    html += `<td style="color: ${totalMetrics.missed > 0 ? '#e74c3c' : 'inherit'};">${totalMetrics.missed}</td>`;
+    html += `<td style="color: ${parseFloat(totalMetrics.missedPct) > 5 ? '#e74c3c' : 'inherit'};">${totalMetrics.missedPct}%</td>`;
+    html += `<td>${formatTime(totalMetrics.avgWait)}</td>`;
+    html += `<td>${formatTime(totalMetrics.maxWait)}</td>`;
+    html += `<td>${formatTime(totalMetrics.avgCallLength)}</td>`;
+    html += '</tr>';
+
+    document.getElementById('siteTableBody').innerHTML = html;
 }
 
 function countOutOfHoursCalls() {
