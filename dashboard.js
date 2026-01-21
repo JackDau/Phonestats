@@ -381,6 +381,9 @@ function filterByLocation(data, location) {
 function getGlobalFilteredData() {
     let filteredData = rawData;
 
+    // Exclude internal-to-internal calls (Direction = 'Int')
+    filteredData = filteredData.filter(row => row.Direction !== 'Int');
+
     // Apply opening hours filter first (Mon-Fri 7:30am-5:30pm, Sat 9am-12:30pm, Sun closed)
     filteredData = filteredData.filter(row => isWithinOpeningHours(row.CallDateTime));
 
@@ -601,7 +604,10 @@ function countOutOfHoursCalls() {
     // Apply global location filter but NOT opening hours filter
     let data = rawData;
 
-    // Exclude internal calls
+    // Exclude internal-to-internal calls (Direction = 'Int')
+    data = data.filter(row => row.Direction !== 'Int');
+
+    // Exclude internal calls (calls to nurse stations, etc.)
     data = data.filter(row => !isInternalCall(row));
 
     // Apply global location filter
