@@ -8,6 +8,7 @@ let currentDailyDirection = 'all'; // 'all', 'in', or 'out'
 let serviceLevelTarget = 90; // Default 90 seconds
 let currentLocationFilter = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for staff table only)
 let currentGlobalLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for entire dashboard)
+let currentHeatmapLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for heatmaps only)
 let hourlyChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 
@@ -1162,9 +1163,22 @@ function updateDailyTable() {
     document.getElementById('dailyTableBody').innerHTML = html;
 }
 
+function updateHeatmapLocation() {
+    currentHeatmapLocation = document.getElementById('heatmapLocationFilter').value;
+    // Re-render heatmaps with new location filter
+    const filteredData = getGlobalFilteredData();
+    updateHeatmaps(filteredData);
+}
+
 function updateHeatmaps(data) {
-    const inCalls = data.filter(row => row.Direction === 'In');
-    const outCalls = data.filter(row => row.Direction === 'Out');
+    // Apply heatmap-specific location filter
+    let heatmapData = data;
+    if (currentHeatmapLocation !== 'all') {
+        heatmapData = filterByLocation(data, currentHeatmapLocation);
+    }
+
+    const inCalls = heatmapData.filter(row => row.Direction === 'In');
+    const outCalls = heatmapData.filter(row => row.Direction === 'Out');
 
     renderHeatmap('heatmapIn', inCalls);
     renderHeatmap('heatmapOut', outCalls);

@@ -239,7 +239,18 @@
 
         <!-- Heatmaps -->
         <div class="section">
-            <h2>Call Volume Heatmaps (7:30 AM - 5:30 PM)</h2>
+            <div class="section-header">
+                <h2>Call Volume Heatmaps (7:30 AM - 5:30 PM)</h2>
+                <div class="service-level-selector">
+                    <label for="heatmapLocationFilter">Location:</label>
+                    <select id="heatmapLocationFilter" onchange="updateHeatmapLocation()">
+                        <option value="all">All Locations</option>
+                        <option value="crace">Crace</option>
+                        <option value="denman">Denman</option>
+                        <option value="lyneham">Lyneham</option>
+                    </select>
+                </div>
+            </div>
             <div class="heatmap-container">
                 <div>
                     <h3 style="font-size: 14px; margin-bottom: 10px; color: #27ae60;">Calls In</h3>
