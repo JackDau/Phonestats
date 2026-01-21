@@ -11,6 +11,124 @@ let currentGlobalLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (fo
 let hourlyChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 
+// OneDrive Configuration - Replace with your Azure App ID
+const ONEDRIVE_CLIENT_ID = "YOUR-AZURE-APP-CLIENT-ID-HERE";
+
+// Launch OneDrive File Picker
+function launchOneDrivePicker() {
+    const btn = document.getElementById('oneDriveBtn');
+    btn.textContent = 'Connecting...';
+
+    OneDrive.open({
+        clientId: ONEDRIVE_CLIENT_ID,
+        action: "download",
+        multiSelect: true,
+        advanced: { filter: ".csv" },
+        success: handleOneDriveFiles,
+        cancel: function() {
+            btn.textContent = 'Open from OneDrive';
+        },
+        error: function(err) {
+            btn.textContent = 'Open from OneDrive';
+            alert('OneDrive error: ' + (err.message || 'Unknown error'));
+        }
+    });
+}
+
+// Handle files selected from OneDrive
+async function handleOneDriveFiles(response) {
+    if (!response.value || response.value.length === 0) {
+        console.log('No files selected from OneDrive');
+        return;
+    }
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('noData').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+
+    try {
+        queueData = {};
+        let mainFileData = null;
+
+        for (const file of response.value) {
+            const url = file['@microsoft.graph.downloadUrl'] || file['@content.downloadUrl'];
+
+            if (!url) {
+                console.error('No download URL for file:', file.name);
+                continue;
+            }
+
+            console.log('Downloading from OneDrive:', file.name);
+
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const rows = await readCsvFromBlob(blob);
+
+            // Determine if this is a queue file or main export
+            if (file.name.toLowerCase().startsWith('callqueue')) {
+                const queueName = extractQueueName(file.name);
+                rows.forEach(row => {
+                    if (row.CallGUID) {
+                        queueData[row.CallGUID] = queueName;
+                    }
+                });
+                console.log(`Loaded ${rows.length} records from queue: ${queueName}`);
+            } else {
+                mainFileData = rows;
+            }
+        }
+
+        if (!mainFileData) {
+            throw new Error('No main export file found. Please select a file starting with "Export".');
+        }
+
+        // Process the main data
+        rawData = mainFileData.map(row => ({
+            ...row,
+            CallDuration: parseFloat(row.CallDuration) || 0,
+            TimeToAnswer: parseFloat(row.TimeToAnswer) || 0,
+            BillableTime: parseFloat(row.BillableTime) || 0,
+            queueName: queueData[row.CallGUID] || null
+        }));
+
+        const queuedCount = rawData.filter(r => r.queueName).length;
+        console.log(`Loaded ${rawData.length} records from OneDrive, ${queuedCount} matched to queues`);
+
+        processAndDisplay();
+
+    } catch (err) {
+        console.error('Error processing OneDrive files:', err);
+        alert('Error processing files from OneDrive: ' + err.message);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('noData').style.display = 'block';
+    }
+
+    document.getElementById('oneDriveBtn').textContent = 'Open from OneDrive';
+}
+
+// Helper function to read CSV from Blob (for OneDrive files)
+function readCsvFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array', raw: true });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { raw: true });
+                resolve(rows);
+            } catch (err) {
+                reject(err);
+            }
+        };
+        reader.onerror = function() {
+            reject(new Error('Failed to read file'));
+        };
+        reader.readAsArrayBuffer(blob);
+    });
+}
+
 // Internal extensions to exclude from incoming call statistics
 const INTERNAL_EXTENSIONS = [
     'Nurse 1',

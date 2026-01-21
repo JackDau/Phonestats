@@ -6,15 +6,21 @@
     <title>YourGP Phone Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="https://js.live.net/v7.2/OneDrive.js"></script>
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
     <div class="header">
         <h1>YourGP Phone Dashboard</h1>
         <div class="controls">
-            <div class="file-upload">
-                <input type="file" id="fileInput" accept=".csv" multiple>
-                <label for="fileInput">Upload CSV Files</label>
+            <div class="file-upload-container">
+                <div class="file-upload">
+                    <input type="file" id="fileInput" accept=".csv" multiple>
+                    <label for="fileInput">Upload from Computer</label>
+                </div>
+                <button class="btn onedrive-btn" id="oneDriveBtn" onclick="launchOneDrivePicker()">
+                    Open from OneDrive
+                </button>
             </div>
             <div class="week-info" id="weekInfo">No data loaded</div>
             <div class="view-toggle" id="queueToggle">

@@ -34,8 +34,24 @@ body {
     flex-wrap: wrap;
 }
 
+.file-upload-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .file-upload {
     position: relative;
+}
+
+.onedrive-btn {
+    background: #0078d4;
+    display: flex;
+    align-items: center;
+}
+
+.onedrive-btn:hover {
+    background: #106ebe;
 }
 
 .file-upload input[type="file"] {
