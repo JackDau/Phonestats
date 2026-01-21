@@ -726,12 +726,14 @@
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' }); // No cellDates - parse DD/MM/YYYY manually in getDateObj()
+                    // Use raw:true to prevent SheetJS from auto-converting DD/MM/YYYY to Excel serial numbers
+                    // This keeps dates as strings so our getDateObj() can parse Australian date format correctly
+                    const workbook = XLSX.read(data, { type: 'array', raw: true });
 
                     // CSV files have a single sheet - use the first one
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
-                    rawData = XLSX.utils.sheet_to_json(worksheet);
+                    rawData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
 
                     console.log('Loaded', rawData.length, 'records from CSV');
                     console.log('Sample record:', rawData[0]);
