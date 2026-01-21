@@ -2,7 +2,8 @@
 
 // Global state
 let rawData = [];
-let currentView = 'all'; // 'all' or 'vasectomy'
+let queueData = {}; // Map of CallGUID -> queue name
+let currentQueueFilter = 'all'; // 'all', 'appointments', 'vasectomy', 'general', 'health', 'noqueue'
 let currentDailyDirection = 'all'; // 'all', 'in', or 'out'
 let serviceLevelTarget = 90; // Default 90 seconds
 let currentLocationFilter = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for staff table only)
@@ -10,8 +11,27 @@ let currentGlobalLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (fo
 let hourlyChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 
-// Minimum pickup time threshold (in seconds) - calls answered faster than this are excluded
-const MIN_PICKUP_TIME = 20;
+// Internal extensions to exclude from incoming call statistics
+const INTERNAL_EXTENSIONS = [
+    'Nurse 1',
+    'Crace',
+    'Lyneham - Rec 1',
+    'Crace - Rec 1',
+    'Nurse 5 (TR1)',
+    'Nurse 2',
+    'Nurse Consult',
+    'Lyneham - Nurse',
+    'Nurse 3 (TR2)'
+];
+
+// Check if a call is to an internal extension (should be excluded from incoming stats)
+function isInternalCall(row) {
+    // Check if UserName matches any internal extension
+    const userName = row.UserName || '';
+    return INTERNAL_EXTENSIONS.some(ext =>
+        userName.toLowerCase() === ext.toLowerCase()
+    );
+}
 
 // Opening hours filter - excludes calls outside business hours
 function isWithinOpeningHours(dateValue) {
@@ -35,55 +55,137 @@ function isWithinOpeningHours(dateValue) {
     return timeInMinutes >= 450 && timeInMinutes <= 1050;
 }
 
-// File upload handler
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// File upload handler - supports multiple files (main export + queue CSVs)
+document.getElementById('fileInput').addEventListener('change', async function(e) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
     document.getElementById('loading').style.display = 'block';
     document.getElementById('noData').style.display = 'none';
     document.getElementById('dashboard').style.display = 'none';
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            // Use raw:true to prevent SheetJS from auto-converting DD/MM/YYYY to Excel serial numbers
-            // This keeps dates as strings so our getDateObj() can parse Australian date format correctly
-            const workbook = XLSX.read(data, { type: 'array', raw: true });
+    try {
+        // Separate main export from queue files
+        let mainFile = null;
+        const queueFiles = [];
 
-            // CSV files have a single sheet - use the first one
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            rawData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
+        files.forEach(file => {
+            if (file.name.startsWith('Export') || file.name.startsWith('export')) {
+                mainFile = file;
+            } else if (file.name.startsWith('CallQueue') || file.name.startsWith('callqueue')) {
+                queueFiles.push(file);
+            }
+        });
 
-            // Convert numeric fields back to numbers (raw:true keeps everything as strings)
-            rawData = rawData.map(row => ({
-                ...row,
-                CallDuration: parseFloat(row.CallDuration) || 0,
-                TimeToAnswer: parseFloat(row.TimeToAnswer) || 0,
-                BillableTime: parseFloat(row.BillableTime) || 0
-            }));
-
-            console.log('Loaded', rawData.length, 'records from CSV');
-            console.log('Sample record:', rawData[0]);
-
-            processAndDisplay();
-        } catch (err) {
-            console.error('Error reading file:', err);
-            alert('Error reading CSV file: ' + err.message);
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('noData').style.display = 'block';
+        // If only one file and it's not clearly identifiable, assume it's the main file
+        if (!mainFile && files.length === 1) {
+            mainFile = files[0];
         }
-    };
-    reader.readAsArrayBuffer(file);
+
+        if (!mainFile) {
+            throw new Error('No main export file found. Please include a file starting with "Export".');
+        }
+
+        // Reset queue data
+        queueData = {};
+
+        // Load queue files first to build lookup map
+        for (const queueFile of queueFiles) {
+            const queueRows = await readCsvFile(queueFile);
+
+            // Extract queue name from filename: CallQueue_Detailed_*_<QueueName>.csv
+            const queueName = extractQueueName(queueFile.name);
+
+            queueRows.forEach(row => {
+                if (row.CallGUID) {
+                    queueData[row.CallGUID] = queueName;
+                }
+            });
+
+            console.log(`Loaded ${queueRows.length} records from queue: ${queueName}`);
+        }
+
+        // Load main export file
+        rawData = await readCsvFile(mainFile);
+
+        // Convert numeric fields back to numbers (raw:true keeps everything as strings)
+        rawData = rawData.map(row => ({
+            ...row,
+            CallDuration: parseFloat(row.CallDuration) || 0,
+            TimeToAnswer: parseFloat(row.TimeToAnswer) || 0,
+            BillableTime: parseFloat(row.BillableTime) || 0,
+            // Add queue name from lookup
+            queueName: queueData[row.CallGUID] || null
+        }));
+
+        // Count queue matches
+        const queuedCount = rawData.filter(r => r.queueName).length;
+        console.log(`Loaded ${rawData.length} records from main CSV, ${queuedCount} matched to queues`);
+        console.log('Sample record:', rawData[0]);
+
+        processAndDisplay();
+    } catch (err) {
+        console.error('Error reading files:', err);
+        alert('Error reading CSV files: ' + err.message);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('noData').style.display = 'block';
+    }
 });
 
-// View toggle
-function setView(view) {
-    currentView = view;
-    document.getElementById('viewAll').classList.toggle('active', view === 'all');
-    document.getElementById('viewVasectomy').classList.toggle('active', view === 'vasectomy');
+// Helper function to read a CSV file and return rows
+function readCsvFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                // Use raw:true to prevent SheetJS from auto-converting DD/MM/YYYY to Excel serial numbers
+                const workbook = XLSX.read(data, { type: 'array', raw: true });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { raw: true });
+                resolve(rows);
+            } catch (err) {
+                reject(err);
+            }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file: ' + file.name));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// Extract queue name from filename like "CallQueue_Detailed_20260111_20260118_Appointments.csv"
+function extractQueueName(filename) {
+    // Remove .csv extension
+    const withoutExt = filename.replace(/\.csv$/i, '');
+    // Split by underscore and get the last part (queue name)
+    const parts = withoutExt.split('_');
+    // Find where the date parts end (they're 8 digits)
+    let queueNameParts = [];
+    let foundDates = 0;
+    for (let i = 0; i < parts.length; i++) {
+        if (/^\d{8}$/.test(parts[i])) {
+            foundDates++;
+        } else if (foundDates >= 2) {
+            // After two date parts, everything else is the queue name
+            queueNameParts.push(parts[i]);
+        }
+    }
+    return queueNameParts.join(' ') || 'Unknown';
+}
+
+// Queue filter toggle
+function setQueueFilter(queue) {
+    currentQueueFilter = queue;
+    // Update button active states
+    const buttons = ['queueAll', 'queueAppointments', 'queueVasectomy', 'queueGeneral', 'queueHealth', 'queueNone'];
+    const values = ['all', 'appointments', 'vasectomy', 'general', 'health', 'noqueue'];
+    buttons.forEach((btnId, idx) => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.classList.toggle('active', values[idx] === queue);
+        }
+    });
     if (rawData.length > 0) {
         processAndDisplay();
     }
@@ -155,19 +257,35 @@ function filterByLocation(data, location) {
     });
 }
 
-// Get data filtered by global location and view (vasectomy)
+// Get data filtered by global location and queue filter
 function getGlobalFilteredData() {
     let filteredData = rawData;
 
-    // Apply opening hours filter first (Mon-Fri 7:45am-5:30pm, Sat 9am-12:30pm, Sun closed)
+    // Apply opening hours filter first (Mon-Fri 7:30am-5:30pm, Sat 9am-12:30pm, Sun closed)
     filteredData = filteredData.filter(row => isWithinOpeningHours(row.CallDateTime));
+
+    // Exclude internal calls (calls to nurse stations, reception desks, etc.)
+    filteredData = filteredData.filter(row => !isInternalCall(row));
 
     // Apply global location filter
     filteredData = filterByLocation(filteredData, currentGlobalLocation);
 
-    // Then apply vasectomy filter if needed
-    if (currentView === 'vasectomy') {
-        filteredData = filteredData.filter(row => row.CallAlertName === 'Canberra Vasectomy');
+    // Apply queue filter
+    if (currentQueueFilter !== 'all') {
+        if (currentQueueFilter === 'noqueue') {
+            // Show calls that didn't enter any queue
+            filteredData = filteredData.filter(row => !row.queueName);
+        } else {
+            // Map filter values to actual queue names
+            const queueMap = {
+                'appointments': 'Appointments',
+                'vasectomy': 'Canberra Vasectomy',
+                'general': 'General Enquiries',
+                'health': 'Health Professionals'
+            };
+            const targetQueue = queueMap[currentQueueFilter];
+            filteredData = filteredData.filter(row => row.queueName === targetQueue);
+        }
     }
 
     return filteredData;
@@ -315,15 +433,13 @@ function updateWeekInfo(data) {
 }
 
 function updateSummaryMetrics(calls) {
-    // Filter out calls with pickup time under threshold (these are excluded from stats)
-    const validCalls = calls.filter(c => !(c.TimeToAnswer > 0 && c.TimeToAnswer < MIN_PICKUP_TIME));
-
-    const total = validCalls.length;
-    const answered = validCalls.filter(c => c.TimeToAnswer >= MIN_PICKUP_TIME).length;
-    const missed = total - answered;
+    const total = calls.length;
+    const answered = calls.filter(c => c.TimeToAnswer > 0).length;
+    // Missed = calls that entered a queue but were not answered
+    const missed = calls.filter(c => c.queueName && (!c.TimeToAnswer || c.TimeToAnswer === 0)).length;
     const missedPct = total > 0 ? ((missed / total) * 100).toFixed(1) : 0;
 
-    const answeredCalls = validCalls.filter(c => c.TimeToAnswer >= MIN_PICKUP_TIME);
+    const answeredCalls = calls.filter(c => c.TimeToAnswer > 0);
     const avgWait = answeredCalls.length > 0
         ? answeredCalls.reduce((sum, c) => sum + (c.TimeToAnswer || 0), 0) / answeredCalls.length
         : 0;
@@ -365,12 +481,26 @@ function countOutOfHoursCalls() {
     // Apply global location filter but NOT opening hours filter
     let data = rawData;
 
+    // Exclude internal calls
+    data = data.filter(row => !isInternalCall(row));
+
     // Apply global location filter
     data = filterByLocation(data, currentGlobalLocation);
 
-    // Apply vasectomy filter if needed
-    if (currentView === 'vasectomy') {
-        data = data.filter(row => row.CallAlertName === 'Canberra Vasectomy');
+    // Apply queue filter if needed (same logic as getGlobalFilteredData but without opening hours)
+    if (currentQueueFilter !== 'all') {
+        if (currentQueueFilter === 'noqueue') {
+            data = data.filter(row => !row.queueName);
+        } else {
+            const queueMap = {
+                'appointments': 'Appointments',
+                'vasectomy': 'Canberra Vasectomy',
+                'general': 'General Enquiries',
+                'health': 'Health Professionals'
+            };
+            const targetQueue = queueMap[currentQueueFilter];
+            data = data.filter(row => row.queueName === targetQueue);
+        }
     }
 
     // Count incoming calls OUTSIDE opening hours
@@ -381,7 +511,7 @@ function countOutOfHoursCalls() {
 }
 
 function calculateCallbackMetrics(calls) {
-    // Get all incoming calls with valid OriginNumber (answered with TimeToAnswer >= MIN_PICKUP_TIME)
+    // Get all incoming calls with valid OriginNumber
     const validCalls = calls.filter(c =>
         c.OriginNumber &&
         c.OriginNumber !== '0' &&
@@ -404,7 +534,7 @@ function calculateCallbackMetrics(calls) {
             callsByNumber[num].push({
                 call,
                 date,
-                isAnswered: call.TimeToAnswer >= MIN_PICKUP_TIME
+                isAnswered: call.TimeToAnswer > 0
             });
         }
     });
@@ -545,7 +675,7 @@ function updateMissedCallFollowup(calls) {
                 date,
                 hour: date.getHours(),
                 isMissed: !call.TimeToAnswer || call.TimeToAnswer === 0,
-                isAnswered: call.TimeToAnswer >= MIN_PICKUP_TIME,
+                isAnswered: call.TimeToAnswer > 0,
                 waitTime: call.CallDuration || 0
             });
         }
@@ -773,15 +903,12 @@ function updateDailyTable() {
 
     // Calculate metrics for each day
     function calcMetrics(calls) {
-        // Filter out calls with pickup time under threshold
-        const validCalls = calls.filter(c => !(c.TimeToAnswer > 0 && c.TimeToAnswer < MIN_PICKUP_TIME));
-
-        const total = validCalls.length;
-        const answered = validCalls.filter(c => c.TimeToAnswer >= MIN_PICKUP_TIME).length;
+        const total = calls.length;
+        const answered = calls.filter(c => c.TimeToAnswer > 0).length;
         const missed = total - answered;
         const missedPct = total > 0 ? ((missed / total) * 100).toFixed(1) : '-';
 
-        const answeredCalls = validCalls.filter(c => c.TimeToAnswer >= MIN_PICKUP_TIME);
+        const answeredCalls = calls.filter(c => c.TimeToAnswer > 0);
         const avgWait = answeredCalls.length > 0
             ? answeredCalls.reduce((sum, c) => sum + (c.TimeToAnswer || 0), 0) / answeredCalls.length
             : null;
@@ -901,8 +1028,8 @@ function renderWaitTimeHeatmap(elementId, calls, mode) {
     const days = [1, 2, 3, 4, 5, 6]; // Mon-Sat
     const dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    // Only include answered calls with TimeToAnswer >= MIN_PICKUP_TIME
-    const answeredCalls = calls.filter(c => c.TimeToAnswer >= MIN_PICKUP_TIME);
+    // Only include answered calls
+    const answeredCalls = calls.filter(c => c.TimeToAnswer > 0);
 
     // Collect wait times per slot per day
     const waitTimes = {};
@@ -1002,12 +1129,8 @@ function updateStaffTable(data) {
         const stats = staffStats[name];
 
         if (row.Direction === 'In') {
-            // Skip calls with pickup time under threshold
-            if (row.TimeToAnswer > 0 && row.TimeToAnswer < MIN_PICKUP_TIME) {
-                return; // Exclude from stats entirely
-            }
             stats.callsIn++;
-            if (row.TimeToAnswer >= MIN_PICKUP_TIME) {
+            if (row.TimeToAnswer > 0) {
                 stats.totalPickupTime += row.TimeToAnswer;
                 stats.pickupCount++;
                 const callLength = (row.CallDuration || 0) - (row.TimeToAnswer || 0);

@@ -63,11 +63,13 @@ body {
 
 .view-toggle {
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    flex-wrap: wrap;
 }
 
 .view-toggle .btn {
-    padding: 8px 16px;
+    padding: 6px 10px;
+    font-size: 12px;
     background: #bdc3c7;
 }
 

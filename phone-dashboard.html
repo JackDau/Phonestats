@@ -13,13 +13,17 @@
         <h1>YourGP Phone Dashboard</h1>
         <div class="controls">
             <div class="file-upload">
-                <input type="file" id="fileInput" accept=".csv">
-                <label for="fileInput">Upload CSV</label>
+                <input type="file" id="fileInput" accept=".csv" multiple>
+                <label for="fileInput">Upload CSV Files</label>
             </div>
             <div class="week-info" id="weekInfo">No data loaded</div>
-            <div class="view-toggle">
-                <button class="btn active" id="viewAll" onclick="setView('all')">All Calls</button>
-                <button class="btn" id="viewVasectomy" onclick="setView('vasectomy')">Vasectomy</button>
+            <div class="view-toggle" id="queueToggle">
+                <button class="btn active" id="queueAll" onclick="setQueueFilter('all')">All</button>
+                <button class="btn" id="queueAppointments" onclick="setQueueFilter('appointments')">Appointments</button>
+                <button class="btn" id="queueVasectomy" onclick="setQueueFilter('vasectomy')">Vasectomy</button>
+                <button class="btn" id="queueGeneral" onclick="setQueueFilter('general')">General</button>
+                <button class="btn" id="queueHealth" onclick="setQueueFilter('health')">Health Pro</button>
+                <button class="btn" id="queueNone" onclick="setQueueFilter('noqueue')">No Queue</button>
             </div>
             <div class="service-level-selector">
                 <label for="globalLocationFilter">Location:</label>
@@ -37,26 +41,26 @@
 
     <div id="noData" class="no-data">
         <h3>No Data Loaded</h3>
-        <p>Upload a CSV file (e.g., ExportCallRecords_20260112_20260118.csv) to get started.</p>
+        <p>Upload CSV files: main export (ExportCallRecords_*.csv) and optionally queue files (CallQueue_Detailed_*.csv).</p>
     </div>
 
     <div id="dashboard" style="display: none;">
         <!-- Summary Metrics -->
-        <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Note: Calls answered in under 20 seconds are excluded from statistics. Hover over cards for explanations.</p>
+        <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Note: Statistics are filtered by queue selection above. Hover over cards for explanations.</p>
         <div class="metrics-grid" id="metricsGrid">
-            <div class="metric-card" title="Total incoming calls during opening hours (excludes calls answered under 20 seconds)">
+            <div class="metric-card" title="Total incoming calls during opening hours">
                 <div class="value" id="totalCalls">-</div>
                 <div class="label">Total Calls</div>
             </div>
-            <div class="metric-card success" title="Calls that were picked up by staff (answered in 20+ seconds)">
+            <div class="metric-card success" title="Calls that were picked up by staff">
                 <div class="value" id="answeredCalls">-</div>
                 <div class="label">Answered</div>
             </div>
-            <div class="metric-card danger" title="Calls that rang but were not answered before the caller hung up">
+            <div class="metric-card danger" title="Calls that entered a queue but were not answered">
                 <div class="value" id="missedCalls">-</div>
                 <div class="label">Missed</div>
             </div>
-            <div class="metric-card danger" title="Percentage of incoming calls that were missed">
+            <div class="metric-card danger" title="Percentage of calls that entered a queue but were missed">
                 <div class="value" id="missedPercent">-</div>
                 <div class="label">Missed %</div>
             </div>
