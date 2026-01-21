@@ -141,7 +141,8 @@ const INTERNAL_EXTENSIONS = [
     'Nurse 2',
     'Nurse Consult',
     'Lyneham - Nurse',
-    'Nurse 3 (TR2)'
+    'Nurse 3 (TR2)',
+    'Denman - Nurse'
 ];
 
 // Check if a call is to an internal extension (should be excluded from incoming stats)
