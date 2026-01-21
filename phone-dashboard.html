@@ -735,6 +735,14 @@
                     const worksheet = workbook.Sheets[sheetName];
                     rawData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
 
+                    // Convert numeric fields back to numbers (raw:true keeps everything as strings)
+                    rawData = rawData.map(row => ({
+                        ...row,
+                        CallDuration: parseFloat(row.CallDuration) || 0,
+                        TimeToAnswer: parseFloat(row.TimeToAnswer) || 0,
+                        BillableTime: parseFloat(row.BillableTime) || 0
+                    }));
+
                     console.log('Loaded', rawData.length, 'records from CSV');
                     console.log('Sample record:', rawData[0]);
 
