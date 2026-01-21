@@ -12,7 +12,7 @@ let hourlyChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 
 // OneDrive Configuration - Replace with your Azure App ID
-const ONEDRIVE_CLIENT_ID = "YOUR-AZURE-APP-CLIENT-ID-HERE";
+const ONEDRIVE_CLIENT_ID = "bdf5829d-49a6-4bed-aa55-89bf6ef866bc";
 
 // Launch OneDrive File Picker
 function launchOneDrivePicker() {
