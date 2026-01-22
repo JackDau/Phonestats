@@ -270,15 +270,25 @@
                     </select>
                 </div>
             </div>
+            <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
+                <span>Low</span>
+                <div style="display: flex; gap: 2px;">
+                    <div style="width: 20px; height: 14px; background: #e3f2fd; border-radius: 2px;"></div>
+                    <div style="width: 20px; height: 14px; background: #90caf9; border-radius: 2px;"></div>
+                    <div style="width: 20px; height: 14px; background: #42a5f5; border-radius: 2px;"></div>
+                    <div style="width: 20px; height: 14px; background: #1565c0; border-radius: 2px;"></div>
+                </div>
+                <span>High</span>
+            </div>
             <div class="heatmap-container">
                 <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #27ae60;">Calls In</h3>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #1565c0; font-weight: 600;">Calls In</h3>
                     <div class="heatmap-wrapper">
                         <div class="heatmap" id="heatmapIn"></div>
                     </div>
                 </div>
                 <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #3498db;">Calls Out</h3>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #7cb342; font-weight: 600;">Calls Out</h3>
                     <div class="heatmap-wrapper">
                         <div class="heatmap" id="heatmapOut"></div>
                     </div>
@@ -289,16 +299,26 @@
         <!-- Wait Time Heatmaps -->
         <div class="section">
             <h2>Wait Time Heatmaps (7:30 AM - 5:30 PM)</h2>
-            <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">Incoming calls only. Green = fast pickup, Red = long wait.</p>
+            <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Incoming calls only. Hover over cells for exact times.</p>
+            <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
+                <span>&lt;30s</span>
+                <div style="display: flex; gap: 2px;">
+                    <div style="width: 20px; height: 14px; background: #e8f5e9; border-radius: 2px;"></div>
+                    <div style="width: 20px; height: 14px; background: #fff3e0; border-radius: 2px;"></div>
+                    <div style="width: 20px; height: 14px; background: #ffab91; border-radius: 2px;"></div>
+                    <div style="width: 20px; height: 14px; background: #c62828; border-radius: 2px;"></div>
+                </div>
+                <span>&gt;5min</span>
+            </div>
             <div class="heatmap-container">
                 <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #e74c3c;">Max Wait Time</h3>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #c62828; font-weight: 600;">Max Wait Time</h3>
                     <div class="heatmap-wrapper">
                         <div class="heatmap" id="heatmapMaxWait"></div>
                     </div>
                 </div>
                 <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #f39c12;">Avg Wait Time</h3>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #f57c00; font-weight: 600;">Avg Wait Time</h3>
                     <div class="heatmap-wrapper">
                         <div class="heatmap" id="heatmapAvgWait"></div>
                     </div>

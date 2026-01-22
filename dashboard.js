@@ -1138,45 +1138,93 @@ function updateHourlyChart(data) {
                 {
                     label: 'Calls In',
                     data: inCountsPerHour,
-                    borderColor: '#27ae60',
-                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    borderColor: '#1565c0',
+                    backgroundColor: 'rgba(21, 101, 192, 0.08)',
                     fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#1565c0',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 3
                 },
                 {
                     label: 'Calls Out',
                     data: outCountsPerHour,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: '#7cb342',
+                    backgroundColor: 'rgba(124, 179, 66, 0.08)',
                     fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#7cb342',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 3
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 800,
+                easing: 'easeOutQuart'
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
                 legend: {
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12, weight: '500' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.06)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        padding: 10,
+                        font: { size: 11 }
+                    },
                     title: {
                         display: true,
-                        text: 'Number of Calls'
+                        text: 'Number of Calls',
+                        font: { size: 12, weight: '500' },
+                        color: '#6c757d'
                     }
                 },
                 x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        padding: 8,
+                        font: { size: 11 }
+                    },
                     title: {
                         display: true,
-                        text: 'Hour of Day'
+                        text: 'Hour of Day',
+                        font: { size: 12, weight: '500' },
+                        color: '#6c757d'
                     }
                 }
             }
@@ -1568,60 +1616,126 @@ function updateWeekTrendChart() {
                 {
                     label: 'Total Calls',
                     data: weeklyData.map(w => w.total),
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: '#1565c0',
+                    backgroundColor: 'rgba(21, 101, 192, 0.1)',
                     yAxisID: 'y',
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 9,
+                    pointBackgroundColor: '#1565c0',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 3,
+                    fill: true
                 },
                 {
                     label: 'Missed %',
                     data: weeklyData.map(w => parseFloat(w.missedPct.toFixed(1))),
-                    borderColor: '#e74c3c',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderColor: '#c62828',
+                    backgroundColor: 'rgba(198, 40, 40, 0.05)',
                     yAxisID: 'y1',
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 9,
+                    pointBackgroundColor: '#c62828',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 3,
+                    borderDash: [5, 5]
                 },
                 {
                     label: 'Avg Wait (sec)',
                     data: weeklyData.map(w => Math.round(w.avgWait)),
-                    borderColor: '#f39c12',
-                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    borderColor: '#f57c00',
+                    backgroundColor: 'rgba(245, 124, 0, 0.05)',
                     yAxisID: 'y1',
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 9,
+                    pointBackgroundColor: '#f57c00',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 3
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 800,
+                easing: 'easeOutQuart'
+            },
             interaction: {
                 mode: 'index',
                 intersect: false
             },
             plugins: {
                 legend: {
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12, weight: '500' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            if (context.dataset.label === 'Missed %') {
+                                label += context.parsed.y + '%';
+                            } else if (context.dataset.label === 'Avg Wait (sec)') {
+                                label += context.parsed.y + 's';
+                            } else {
+                                label += context.parsed.y;
+                            }
+                            return label;
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     type: 'linear',
                     position: 'left',
-                    title: { display: true, text: 'Call Count' },
-                    beginAtZero: true
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.06)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        padding: 10,
+                        font: { size: 11 }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Call Count',
+                        font: { size: 12, weight: '500' },
+                        color: '#1565c0'
+                    }
                 },
                 y1: {
                     type: 'linear',
                     position: 'right',
-                    title: { display: true, text: '% / Seconds' },
                     beginAtZero: true,
-                    grid: { drawOnChartArea: false }
+                    grid: { drawOnChartArea: false },
+                    ticks: {
+                        padding: 10,
+                        font: { size: 11 }
+                    },
+                    title: {
+                        display: true,
+                        text: '% / Seconds',
+                        font: { size: 12, weight: '500' },
+                        color: '#6c757d'
+                    }
                 }
             }
         }

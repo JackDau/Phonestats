@@ -59,22 +59,22 @@ body {
 }
 
 .file-upload label, .btn {
-    background: #3498db;
+    background: #1565c0;
     color: white;
     padding: 10px 20px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     border: none;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.15s;
 }
 
 .file-upload label:hover, .btn:hover {
-    background: #2980b9;
+    background: #0d47a1;
 }
 
 .btn.active {
-    background: #27ae60;
+    background: #2e7d32;
 }
 
 .view-toggle {
@@ -86,11 +86,11 @@ body {
 .view-toggle .btn {
     padding: 6px 10px;
     font-size: 12px;
-    background: #bdc3c7;
+    background: #adb5bd;
 }
 
 .view-toggle .btn.active {
-    background: #3498db;
+    background: #1565c0;
 }
 
 .week-info {
@@ -131,23 +131,23 @@ body {
 }
 
 .metric-card.danger .value {
-    color: #e74c3c;
+    color: #c62828;
 }
 
 .metric-card.success .value {
-    color: #27ae60;
+    color: #2e7d32;
 }
 
 .metric-card.info .value {
-    color: #3498db;
+    color: #1565c0;
 }
 
 .metric-card.warning .value {
-    color: #f39c12;
+    color: #f57c00;
 }
 
 .metric-card.purple .value {
-    color: #9b59b6;
+    color: #7b1fa2;
 }
 
 .section {
@@ -160,10 +160,11 @@ body {
 
 .section h2 {
     font-size: 16px;
-    color: #2c3e50;
+    color: #212529;
     margin-bottom: 15px;
-    border-bottom: 2px solid #3498db;
+    border-bottom: 2px solid #1565c0;
     padding-bottom: 8px;
+    font-weight: 600;
 }
 
 .section-header {
@@ -227,43 +228,56 @@ tr:hover {
 }
 
 .heatmap-cell {
-    padding: 6px 4px;
+    padding: 8px 4px;
     text-align: center;
-    border-radius: 3px;
+    border-radius: 4px;
     min-width: 50px;
+    font-size: 11px;
+    font-weight: 500;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.heatmap-cell:not(.heatmap-header):not(.heatmap-time):hover {
+    transform: scale(1.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+    position: relative;
 }
 
 .heatmap-header {
-    background: #f8f9fa;
-    font-weight: 600;
+    background: #e9ecef;
+    font-weight: 700;
+    color: #495057;
+    font-size: 12px;
 }
 
 .heatmap-time {
-    background: #f8f9fa;
-    font-weight: 500;
+    background: #e9ecef;
+    font-weight: 600;
     text-align: right;
-    padding-right: 8px;
+    padding-right: 10px;
+    color: #495057;
 }
 
-/* Call volume heatmap colors (green scale) */
-.heat-0 { background: #f8f9fa; }
-.heat-1 { background: #d4edda; }
-.heat-2 { background: #a8d5ba; }
-.heat-3 { background: #7cc49a; }
-.heat-4 { background: #5cb377; }
-.heat-5 { background: #3d9d5d; color: white; }
-.heat-6 { background: #2d8a4e; color: white; }
-.heat-7 { background: #1e7640; color: white; }
+/* Call volume heatmap colors - colorblind-friendly blue scale */
+.heat-0 { background: #f8f9fa; color: #adb5bd; }
+.heat-1 { background: #e3f2fd; color: #1565c0; }
+.heat-2 { background: #bbdefb; color: #1565c0; }
+.heat-3 { background: #90caf9; color: #0d47a1; }
+.heat-4 { background: #64b5f6; color: #0d47a1; }
+.heat-5 { background: #42a5f5; color: white; }
+.heat-6 { background: #1e88e5; color: white; }
+.heat-7 { background: #1565c0; color: white; font-weight: 600; }
 
-/* Wait time heatmap colors (green=good/fast, red=bad/slow) */
-.wait-heat-0 { background: #f8f9fa; }
-.wait-heat-1 { background: #d4edda; }
-.wait-heat-2 { background: #fff3cd; }
-.wait-heat-3 { background: #ffeaa7; }
-.wait-heat-4 { background: #fdcb6e; }
-.wait-heat-5 { background: #e17055; color: white; }
-.wait-heat-6 { background: #d63031; color: white; }
-.wait-heat-7 { background: #c0392b; color: white; }
+/* Wait time heatmap colors - sequential blue to orange to red (colorblind-safe) */
+.wait-heat-0 { background: #f8f9fa; color: #adb5bd; }
+.wait-heat-1 { background: #e8f5e9; color: #2e7d32; }
+.wait-heat-2 { background: #fff8e1; color: #f57c00; }
+.wait-heat-3 { background: #fff3e0; color: #e65100; }
+.wait-heat-4 { background: #ffe0b2; color: #e65100; }
+.wait-heat-5 { background: #ffab91; color: #bf360c; }
+.wait-heat-6 { background: #e57373; color: white; }
+.wait-heat-7 { background: #c62828; color: white; font-weight: 600; }
 
 .no-data {
     text-align: center;
@@ -292,12 +306,12 @@ tr:hover {
 .direction-tabs .btn {
     padding: 6px 14px;
     font-size: 12px;
-    background: #ecf0f1;
-    color: #333;
+    background: #e9ecef;
+    color: #495057;
 }
 
 .direction-tabs .btn.active {
-    background: #3498db;
+    background: #1565c0;
     color: white;
 }
 
@@ -319,6 +333,9 @@ tr:hover {
     position: relative;
     height: 300px;
     width: 100%;
+    padding: 10px 5px;
+    background: linear-gradient(to bottom, #fafbfc 0%, #ffffff 100%);
+    border-radius: 8px;
 }
 
 .abandonment-grid {
@@ -338,7 +355,7 @@ tr:hover {
 .abandonment-bucket .count {
     font-size: 20px;
     font-weight: 700;
-    color: #e74c3c;
+    color: #c62828;
 }
 
 .abandonment-bucket .range {
@@ -380,25 +397,25 @@ tr:hover {
 }
 
 .followup-card.lost {
-    border-left: 4px solid #e74c3c;
+    border-left: 4px solid #c62828;
 }
 
 .followup-card.persistent {
-    border-left: 4px solid #f39c12;
+    border-left: 4px solid #f57c00;
 }
 
 .followup-card .big-number {
     font-size: 32px;
     font-weight: 700;
-    color: #2c3e50;
+    color: #212529;
 }
 
 .followup-card.lost .big-number {
-    color: #e74c3c;
+    color: #c62828;
 }
 
 .followup-card.persistent .big-number {
-    color: #f39c12;
+    color: #f57c00;
 }
 
 .followup-card .card-label {
@@ -489,11 +506,12 @@ tr:hover {
 }
 
 .peak-hour-tag {
-    background: #fff3e0;
-    color: #e65100;
+    background: #e3f2fd;
+    color: #1565c0;
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 11px;
+    font-weight: 500;
 }
 
 .toggle-label {
