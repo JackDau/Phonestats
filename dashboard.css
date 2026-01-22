@@ -495,3 +495,23 @@ tr:hover {
     border-radius: 12px;
     font-size: 11px;
 }
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    background: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.toggle-label input {
+    cursor: pointer;
+}
+
+.toggle-label:hover {
+    background: #f8f9fa;
+}

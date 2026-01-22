@@ -9,7 +9,11 @@ let serviceLevelTarget = 90; // Default 90 seconds
 let currentLocationFilter = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for staff table only)
 let currentGlobalLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for entire dashboard)
 let currentHeatmapLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for heatmaps only)
+let availableWeeks = []; // Array of {start: Date, end: Date, label: string}
+let currentWeekFilter = 'all'; // 'all' or week index
+let showWeeklyAverages = false; // Toggle for showing weekly averages
 let hourlyChart = null;
+let weekTrendChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 
 // OneDrive Configuration - Replace with your Azure App ID
@@ -383,6 +387,19 @@ function filterByLocation(data, location) {
 function getGlobalFilteredData() {
     let filteredData = rawData;
 
+    // Apply week filter first
+    if (currentWeekFilter !== 'all') {
+        const weekIdx = parseInt(currentWeekFilter);
+        const week = availableWeeks[weekIdx];
+        if (week) {
+            filteredData = filteredData.filter(row => {
+                const date = getDateObj(row.CallDateTime);
+                if (!date) return false;
+                return date >= week.start && date <= week.end;
+            });
+        }
+    }
+
     // Exclude internal-to-internal calls (Direction = 'Int')
     filteredData = filteredData.filter(row => row.Direction !== 'Int');
 
@@ -493,6 +510,72 @@ function getTimeSlot(dateValue) {
     return hours * 2 + (minutes >= 30 ? 1 : 0);
 }
 
+// Detect weeks in data (Monday-Sunday boundaries)
+function detectWeeksInData(data) {
+    const dates = data.map(row => getDateObj(row.CallDateTime))
+        .filter(d => d && !isNaN(d));
+    if (dates.length === 0) return [];
+
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+
+    // Generate week boundaries (Monday-Sunday)
+    const weeks = [];
+    let weekStart = new Date(minDate);
+    // Adjust to Monday
+    const dayOfWeek = weekStart.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    weekStart.setDate(weekStart.getDate() + daysToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+
+    while (weekStart <= maxDate) {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+
+        const label = `Week of ${weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`;
+        weeks.push({ start: new Date(weekStart), end: new Date(weekEnd), label });
+
+        weekStart.setDate(weekStart.getDate() + 7);
+    }
+    return weeks;
+}
+
+// Populate week selector dropdown
+function populateWeekSelector() {
+    const select = document.getElementById('weekSelector');
+    if (!select) return;
+
+    select.innerHTML = '<option value="all">All Weeks</option>';
+    availableWeeks.forEach((week, idx) => {
+        select.innerHTML += `<option value="${idx}">${week.label}</option>`;
+    });
+
+    // Restore selection if valid
+    if (currentWeekFilter !== 'all') {
+        const idx = parseInt(currentWeekFilter);
+        if (idx >= 0 && idx < availableWeeks.length) {
+            select.value = currentWeekFilter;
+        } else {
+            currentWeekFilter = 'all';
+        }
+    }
+}
+
+// Set week filter
+function setWeekFilter() {
+    currentWeekFilter = document.getElementById('weekSelector').value;
+    processAndDisplay();
+}
+
+// Toggle weekly averages display
+function toggleWeeklyAverages() {
+    showWeeklyAverages = document.getElementById('avgToggle').checked;
+    const filteredData = getGlobalFilteredData();
+    const incomingCalls = filteredData.filter(row => row.Direction === 'In');
+    updateSummaryMetrics(incomingCalls);
+}
+
 // Format time slot to display string
 function formatTimeSlot(slot) {
     const hours = Math.floor(slot / 2);
@@ -506,6 +589,10 @@ function formatTimeSlot(slot) {
 function processAndDisplay() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
+
+    // Detect weeks in data and populate selector
+    availableWeeks = detectWeeksInData(rawData);
+    populateWeekSelector();
 
     // Filter data based on global location and view
     let filteredData = getGlobalFilteredData();
@@ -525,6 +612,9 @@ function processAndDisplay() {
 
     // Update hourly chart
     updateHourlyChart(filteredData);
+
+    // Update week-over-week trend chart
+    updateWeekTrendChart();
 
     // Update site breakdown
     updateSiteBreakdown(incomingCalls);
@@ -589,9 +679,23 @@ function updateSummaryMetrics(calls) {
     // Calculate FCR and Callback Rate
     const { fcrRate, callbackRate } = calculateCallbackMetrics(calls);
 
-    document.getElementById('totalCalls').textContent = total;
-    document.getElementById('answeredCalls').textContent = answered;
-    document.getElementById('missedCalls').textContent = missed;
+    // Calculate number of weeks for averaging
+    const numWeeks = currentWeekFilter === 'all' ? Math.max(1, availableWeeks.length) : 1;
+
+    // Apply averaging if enabled and viewing all weeks
+    let displayTotal = total;
+    let displayAnswered = answered;
+    let displayMissed = missed;
+
+    if (showWeeklyAverages && currentWeekFilter === 'all' && numWeeks > 1) {
+        displayTotal = Math.round(total / numWeeks);
+        displayAnswered = Math.round(answered / numWeeks);
+        displayMissed = Math.round(missed / numWeeks);
+    }
+
+    document.getElementById('totalCalls').textContent = displayTotal;
+    document.getElementById('answeredCalls').textContent = displayAnswered;
+    document.getElementById('missedCalls').textContent = displayMissed;
     document.getElementById('missedPercent').textContent = missedPct + '%';
     document.getElementById('serviceLevel').textContent = serviceLevel + '%';
     document.getElementById('fcrRate').textContent = fcrRate + '%';
@@ -1390,4 +1494,136 @@ function updateStaffTable(data) {
     });
 
     document.getElementById('staffTableBody').innerHTML = html;
+}
+
+// Week-over-week trend chart
+function updateWeekTrendChart() {
+    const section = document.getElementById('weekTrendsSection');
+    if (!section) return;
+
+    // Only show if multiple weeks available
+    if (availableWeeks.length < 2) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+
+    // Calculate metrics per week (applies global location and queue filters)
+    const weeklyData = availableWeeks.map(week => {
+        // Filter data for this week
+        let weekCalls = rawData.filter(row => {
+            const date = getDateObj(row.CallDateTime);
+            if (!date) return false;
+            return date >= week.start && date <= week.end &&
+                   isWithinOpeningHours(row.CallDateTime) &&
+                   !isInternalCall(row) &&
+                   row.Direction !== 'Int';
+        });
+
+        // Apply global location filter
+        weekCalls = filterByLocation(weekCalls, currentGlobalLocation);
+
+        // Apply queue filter
+        if (currentQueueFilter !== 'all') {
+            if (currentQueueFilter === 'noqueue') {
+                weekCalls = weekCalls.filter(row => !row.queueName);
+            } else {
+                const queueMap = {
+                    'appointments': 'Appointments',
+                    'vasectomy': 'Canberra Vasectomy',
+                    'general': 'General Enquiries',
+                    'health': 'Health Professionals'
+                };
+                const targetQueue = queueMap[currentQueueFilter];
+                weekCalls = weekCalls.filter(row => row.queueName === targetQueue);
+            }
+        }
+
+        const inCalls = weekCalls.filter(c => c.Direction === 'In');
+        const total = inCalls.length;
+        const missed = inCalls.filter(c => c.queueName && (!c.TimeToAnswer || c.TimeToAnswer === 0)).length;
+        const missedPct = total > 0 ? (missed / total * 100) : 0;
+
+        const answeredCalls = inCalls.filter(c => c.TimeToAnswer > 0);
+        const avgWait = answeredCalls.length > 0
+            ? answeredCalls.reduce((sum, c) => sum + (c.TimeToAnswer || 0), 0) / answeredCalls.length
+            : 0;
+
+        return { total, missedPct, avgWait };
+    });
+
+    const labels = availableWeeks.map(w => w.label.replace('Week of ', ''));
+
+    // Destroy existing chart
+    if (weekTrendChart) {
+        weekTrendChart.destroy();
+    }
+
+    const ctx = document.getElementById('weekTrendChart').getContext('2d');
+    weekTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total Calls',
+                    data: weeklyData.map(w => w.total),
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Missed %',
+                    data: weeklyData.map(w => parseFloat(w.missedPct.toFixed(1))),
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Avg Wait (sec)',
+                    data: weeklyData.map(w => Math.round(w.avgWait)),
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Call Count' },
+                    beginAtZero: true
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: '% / Seconds' },
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
 }

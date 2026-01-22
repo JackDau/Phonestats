@@ -23,6 +23,16 @@
                 </button>
             </div>
             <div class="week-info" id="weekInfo">No data loaded</div>
+            <div class="service-level-selector">
+                <label for="weekSelector">Week:</label>
+                <select id="weekSelector" onchange="setWeekFilter()">
+                    <option value="all">All Weeks</option>
+                </select>
+            </div>
+            <label class="toggle-label" title="Show weekly averages instead of totals">
+                <input type="checkbox" id="avgToggle" onchange="toggleWeeklyAverages()">
+                <span>Weekly Avg</span>
+            </label>
             <div class="view-toggle" id="queueToggle">
                 <button class="btn active" id="queueAll" onclick="setQueueFilter('all')">All</button>
                 <button class="btn" id="queueAppointments" onclick="setQueueFilter('appointments')">Appointments</button>
@@ -188,6 +198,15 @@
                     <span style="font-size: 11px; color: #7f8c8d;">Avg Wait Before Hanging Up:</span>
                     <span id="avgWaitBeforeHangup" style="font-size: 16px; font-weight: 600; color: #e74c3c; margin-left: 8px;">-</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Week-over-Week Trends -->
+        <div class="section" id="weekTrendsSection" style="display: none;">
+            <h2>Week-over-Week Trends</h2>
+            <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Shows trends when multiple weeks of data are loaded</p>
+            <div class="chart-container">
+                <canvas id="weekTrendChart"></canvas>
             </div>
         </div>
 
