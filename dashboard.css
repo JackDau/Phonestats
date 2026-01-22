@@ -329,6 +329,29 @@ tr:hover {
     font-size: 12px;
 }
 
+.date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    background: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.date-range-picker label {
+    color: #495057;
+    font-weight: 500;
+}
+
+.date-range-picker input[type="date"] {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
 .chart-container {
     position: relative;
     height: 300px;

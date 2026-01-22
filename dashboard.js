@@ -12,6 +12,10 @@ let currentHeatmapLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (f
 let availableWeeks = []; // Array of {start: Date, end: Date, label: string}
 let currentWeekFilter = 'all'; // 'all' or week index
 let showWeeklyAverages = false; // Toggle for showing weekly averages
+let dateRangeStart = null; // Date object for custom date range filter
+let dateRangeEnd = null;   // Date object for custom date range filter
+let dataMinDate = null;    // Earliest date in loaded data
+let dataMaxDate = null;    // Latest date in loaded data
 let hourlyChart = null;
 let weekTrendChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
@@ -86,6 +90,12 @@ async function handleOneDriveFiles(response) {
         if (!mainFileData) {
             throw new Error('No main export file found. Please select a file starting with "Export".');
         }
+
+        // Reset date range state for new data
+        dataMinDate = null;
+        dataMaxDate = null;
+        dateRangeStart = null;
+        dateRangeEnd = null;
 
         // Process the main data
         rawData = mainFileData.map(row => ({
@@ -230,6 +240,12 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
             console.log(`Loaded ${queueRows.length} records from queue: ${queueName}`);
         }
+
+        // Reset date range state for new data
+        dataMinDate = null;
+        dataMaxDate = null;
+        dateRangeStart = null;
+        dateRangeEnd = null;
 
         // Load main export file
         rawData = await readCsvFile(mainFile);
@@ -387,7 +403,16 @@ function filterByLocation(data, location) {
 function getGlobalFilteredData() {
     let filteredData = rawData;
 
-    // Apply week filter first
+    // Apply date range filter first (custom date selection)
+    if (dateRangeStart && dateRangeEnd) {
+        filteredData = filteredData.filter(row => {
+            const date = getDateObj(row.CallDateTime);
+            if (!date) return false;
+            return date >= dateRangeStart && date <= dateRangeEnd;
+        });
+    }
+
+    // Apply week filter (only if not using custom date range that differs from full data range)
     if (currentWeekFilter !== 'all') {
         const weekIdx = parseInt(currentWeekFilter);
         const week = availableWeeks[weekIdx];
@@ -568,6 +593,62 @@ function setWeekFilter() {
     processAndDisplay();
 }
 
+// Detect date range in data
+function detectDateRange(data) {
+    const dates = data.map(row => getDateObj(row.CallDateTime))
+        .filter(d => d && !isNaN(d));
+    if (dates.length === 0) return { min: null, max: null };
+
+    return {
+        min: new Date(Math.min(...dates)),
+        max: new Date(Math.max(...dates))
+    };
+}
+
+// Format date for input element (YYYY-MM-DD)
+function formatDateForInput(date) {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Populate date range inputs
+function populateDateInputs() {
+    const fromInput = document.getElementById('dateFrom');
+    const toInput = document.getElementById('dateTo');
+    if (!fromInput || !toInput) return;
+
+    if (dataMinDate) {
+        fromInput.min = formatDateForInput(dataMinDate);
+        fromInput.max = formatDateForInput(dataMaxDate);
+        fromInput.value = formatDateForInput(dateRangeStart);
+    }
+    if (dataMaxDate) {
+        toInput.min = formatDateForInput(dataMinDate);
+        toInput.max = formatDateForInput(dataMaxDate);
+        toInput.value = formatDateForInput(dateRangeEnd);
+    }
+}
+
+// Set date range filter
+function setDateRange() {
+    const fromValue = document.getElementById('dateFrom').value;
+    const toValue = document.getElementById('dateTo').value;
+
+    if (fromValue) dateRangeStart = new Date(fromValue + 'T00:00:00');
+    if (toValue) dateRangeEnd = new Date(toValue + 'T23:59:59');
+
+    // Ensure from <= to
+    if (dateRangeStart && dateRangeEnd && dateRangeStart > dateRangeEnd) {
+        [dateRangeStart, dateRangeEnd] = [dateRangeEnd, dateRangeStart];
+        populateDateInputs();
+    }
+
+    processAndDisplay();
+}
+
 // Toggle weekly averages display
 function toggleWeeklyAverages() {
     showWeeklyAverages = document.getElementById('avgToggle').checked;
@@ -593,6 +674,16 @@ function processAndDisplay() {
     // Detect weeks in data and populate selector
     availableWeeks = detectWeeksInData(rawData);
     populateWeekSelector();
+
+    // Detect date range and populate date inputs (only on initial load)
+    if (!dataMinDate || !dataMaxDate) {
+        const range = detectDateRange(rawData);
+        dataMinDate = range.min;
+        dataMaxDate = range.max;
+        dateRangeStart = range.min;
+        dateRangeEnd = range.max;
+    }
+    populateDateInputs();
 
     // Filter data based on global location and view
     let filteredData = getGlobalFilteredData();

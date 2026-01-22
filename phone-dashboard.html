@@ -23,6 +23,12 @@
                 </button>
             </div>
             <div class="week-info" id="weekInfo">No data loaded</div>
+            <div class="date-range-picker">
+                <label>From:</label>
+                <input type="date" id="dateFrom" onchange="setDateRange()">
+                <label>To:</label>
+                <input type="date" id="dateTo" onchange="setDateRange()">
+            </div>
             <div class="service-level-selector">
                 <label for="weekSelector">Week:</label>
                 <select id="weekSelector" onchange="setWeekFilter()">
