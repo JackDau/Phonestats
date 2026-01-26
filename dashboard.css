@@ -279,6 +279,16 @@ tr:hover {
 .wait-heat-6 { background: #e57373; color: white; }
 .wait-heat-7 { background: #c62828; color: white; font-weight: 600; }
 
+/* Missed calls heatmap - red gradient */
+.missed-heat-0 { background: #f8f9fa; color: #adb5bd; }
+.missed-heat-1 { background: #fff5f5; color: #c53030; }
+.missed-heat-2 { background: #fed7d7; color: #c53030; }
+.missed-heat-3 { background: #feb2b2; color: #c53030; }
+.missed-heat-4 { background: #fc8181; color: white; }
+.missed-heat-5 { background: #f56565; color: white; }
+.missed-heat-6 { background: #e53e3e; color: white; }
+.missed-heat-7 { background: #c53030; color: white; font-weight: 600; }
+
 .no-data {
     text-align: center;
     padding: 60px 20px;

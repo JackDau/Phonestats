@@ -75,13 +75,16 @@ async function handleOneDriveFiles(response) {
 
             // Determine if this is a queue file or main export
             if (file.name.toLowerCase().startsWith('callqueue')) {
-                const queueName = extractQueueName(file.name);
+                const filenameQueueName = extractQueueName(file.name);
                 rows.forEach(row => {
                     if (row.CallGUID) {
+                        // Use CallQueueName from CSV data if available, otherwise fall back to filename
+                        const queueName = row.CallQueueName || filenameQueueName;
                         queueData[row.CallGUID] = queueName;
                     }
                 });
-                console.log(`Loaded ${rows.length} records from queue: ${queueName}`);
+                const sampleQueue = rows[0]?.CallQueueName || filenameQueueName;
+                console.log(`Loaded ${rows.length} records from queue: ${sampleQueue}`);
             } else {
                 mainFileData = rows;
             }
@@ -157,7 +160,9 @@ const INTERNAL_EXTENSIONS = [
     'Nurse Consult',
     'Lyneham - Nurse',
     'Nurse 3 (TR2)',
-    'Denman - Nurse'
+    'Denman - Nurse',
+    'Nurse 4 (TR2)',
+    'Denman - Rec 1'
 ];
 
 // Check if a call is to an internal extension (should be excluded from incoming stats)
@@ -229,16 +234,19 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         for (const queueFile of queueFiles) {
             const queueRows = await readCsvFile(queueFile);
 
-            // Extract queue name from filename: CallQueue_Detailed_*_<QueueName>.csv
-            const queueName = extractQueueName(queueFile.name);
+            // Extract queue name from filename or CSV data
+            const filenameQueueName = extractQueueName(queueFile.name);
 
             queueRows.forEach(row => {
                 if (row.CallGUID) {
+                    // Use CallQueueName from CSV data if available, otherwise fall back to filename
+                    const queueName = row.CallQueueName || filenameQueueName;
                     queueData[row.CallGUID] = queueName;
                 }
             });
 
-            console.log(`Loaded ${queueRows.length} records from queue: ${queueName}`);
+            const sampleQueue = queueRows[0]?.CallQueueName || filenameQueueName;
+            console.log(`Loaded ${queueRows.length} records from queue: ${sampleQueue}`);
         }
 
         // Reset date range state for new data
@@ -392,10 +400,22 @@ function updateStaffTableFilter() {
 // Filter data by location
 function filterByLocation(data, location) {
     if (location === 'all') return data;
-    const locationLower = location.toLowerCase();
+    
+    // Map filter values to OfficeName patterns
+    const locationPatterns = {
+        'crace': ['crace'],
+        'denman': ['denman'],
+        'lyneham': ['lyneham'],
+        'practice': ['practice support'],
+        'management': ['management / support', 'management/support']
+    };
+    
+    const patterns = locationPatterns[location.toLowerCase()];
+    if (!patterns) return data;
+    
     return data.filter(row => {
         const office = (row.OfficeName || '').toLowerCase();
-        return office.includes(locationLower);
+        return patterns.some(pattern => office.includes(pattern));
     });
 }
 
@@ -497,15 +517,24 @@ function getDateObj(dateValue) {
         return date;
     }
     if (typeof dateValue === 'string') {
-        // Handle DD/MM/YYYY or DD/MM/YYYY HH:MM:SS format (Australian date format)
-        const ddmmyyyyMatch = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+        // Handle DD/MM/YYYY or DD/MM/YYYY HH:MM:SS AM/PM format (Australian date format)
+        const ddmmyyyyMatch = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?)?/i);
         if (ddmmyyyyMatch) {
             const day = parseInt(ddmmyyyyMatch[1]);
             const month = parseInt(ddmmyyyyMatch[2]) - 1; // JS months are 0-indexed
             const year = parseInt(ddmmyyyyMatch[3]);
-            const hours = ddmmyyyyMatch[4] ? parseInt(ddmmyyyyMatch[4]) : 0;
+            let hours = ddmmyyyyMatch[4] ? parseInt(ddmmyyyyMatch[4]) : 0;
             const minutes = ddmmyyyyMatch[5] ? parseInt(ddmmyyyyMatch[5]) : 0;
             const seconds = ddmmyyyyMatch[6] ? parseInt(ddmmyyyyMatch[6]) : 0;
+            const ampm = ddmmyyyyMatch[7] ? ddmmyyyyMatch[7].toUpperCase() : null;
+            
+            // Convert 12-hour format to 24-hour format
+            if (ampm === 'PM' && hours !== 12) {
+                hours += 12;
+            } else if (ampm === 'AM' && hours === 12) {
+                hours = 0;
+            }
+            
             return new Date(year, month, day, hours, minutes, seconds);
         }
         // Fallback to standard parsing
@@ -1429,6 +1458,14 @@ function updateHeatmaps(data) {
     // Render wait time heatmaps (incoming calls only)
     renderWaitTimeHeatmap('heatmapMaxWait', inCalls, 'max');
     renderWaitTimeHeatmap('heatmapAvgWait', inCalls, 'avg');
+    
+    // Render missed calls heatmaps
+    const missedCalls = inCalls.filter(c => !c.TimeToAnswer || c.TimeToAnswer === 0);
+    renderMissedHeatmap('heatmapMissed', missedCalls, inCalls, 'count');
+    renderMissedHeatmap('heatmapMissedRate', missedCalls, inCalls, 'rate');
+    
+    // Update missed calls by queue
+    updateMissedByQueue(inCalls);
 }
 
 function renderHeatmap(elementId, calls) {
@@ -1560,6 +1597,169 @@ function renderWaitTimeHeatmap(elementId, calls, mode) {
     document.getElementById(elementId).innerHTML = html;
 }
 
+// Render missed calls heatmap with red color scale
+function renderMissedHeatmap(elementId, missedCalls, allCalls, type) {
+    // type: 'count' or 'rate'
+    const startSlot = 15;
+    const endSlot = 35;
+    const days = [1, 2, 3, 4, 5, 6];
+    const dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const missedCounts = {};
+    const totalCounts = {};
+    
+    for (let slot = startSlot; slot <= endSlot; slot++) {
+        missedCounts[slot] = {};
+        totalCounts[slot] = {};
+        days.forEach(day => {
+            missedCounts[slot][day] = 0;
+            totalCounts[slot][day] = 0;
+        });
+    }
+
+    missedCalls.forEach(call => {
+        const day = getDayOfWeek(call.CallDateTime);
+        const slot = getTimeSlot(call.CallDateTime);
+        if (day !== null && slot !== null && days.includes(day) && slot >= startSlot && slot <= endSlot) {
+            missedCounts[slot][day]++;
+        }
+    });
+
+    allCalls.forEach(call => {
+        const day = getDayOfWeek(call.CallDateTime);
+        const slot = getTimeSlot(call.CallDateTime);
+        if (day !== null && slot !== null && days.includes(day) && slot >= startSlot && slot <= endSlot) {
+            totalCounts[slot][day]++;
+        }
+    });
+
+    let maxVal = 0;
+    const values = {};
+    for (let slot = startSlot; slot <= endSlot; slot++) {
+        values[slot] = {};
+        days.forEach(day => {
+            if (type === 'count') {
+                values[slot][day] = missedCounts[slot][day];
+            } else {
+                const total = totalCounts[slot][day];
+                values[slot][day] = total > 0 ? (missedCounts[slot][day] / total) * 100 : null;
+            }
+            if (values[slot][day] !== null) {
+                maxVal = Math.max(maxVal, values[slot][day]);
+            }
+        });
+    }
+
+    function getMissedHeatLevel(value, isRate) {
+        if (value === null || value === 0) return 0;
+        if (isRate) {
+            if (value < 10) return 1;
+            if (value < 20) return 2;
+            if (value < 30) return 3;
+            if (value < 40) return 4;
+            if (value < 50) return 5;
+            if (value < 70) return 6;
+            return 7;
+        } else {
+            if (maxVal === 0) return 0;
+            return Math.min(7, Math.ceil((value / maxVal) * 7));
+        }
+    }
+
+    let html = '';
+    html += '<div class="heatmap-cell heatmap-header"></div>';
+    days.forEach(day => {
+        html += '<div class="heatmap-cell heatmap-header">' + dayNames[day] + '</div>';
+    });
+
+    for (let slot = startSlot; slot <= endSlot; slot++) {
+        html += '<div class="heatmap-cell heatmap-time">' + formatTimeSlot(slot) + '</div>';
+        days.forEach(day => {
+            const val = values[slot][day];
+            const heatLevel = getMissedHeatLevel(val, type === 'rate');
+            let displayVal = '';
+            let titleText = '';
+            
+            if (type === 'count') {
+                displayVal = val > 0 ? val : '';
+                titleText = val + ' missed calls';
+            } else {
+                displayVal = val !== null && val > 0 ? val.toFixed(0) + '%' : '';
+                titleText = val !== null ? val.toFixed(1) + '% missed (' + missedCounts[slot][day] + '/' + totalCounts[slot][day] + ')' : 'No calls';
+            }
+            
+            html += '<div class="heatmap-cell missed-heat-' + heatLevel + '" title="' + titleText + '">' + displayVal + '</div>';
+        });
+    }
+
+    document.getElementById(elementId).innerHTML = html;
+}
+
+// Update missed calls by queue analysis
+function updateMissedByQueue(calls) {
+    const inCalls = calls.filter(c => c.Direction === 'In');
+    
+    const queues = [
+        { key: 'appointments', name: 'Appointments', filter: 'Appointments' },
+        { key: 'vasectomy', name: 'Canberra Vasectomy', filter: 'Canberra Vasectomy' },
+        { key: 'general', name: 'General Enquiries', filter: 'General Enquiries' },
+        { key: 'health', name: 'Health Professionals', filter: 'Health Professionals' },
+        { key: 'noqueue', name: 'No Queue', filter: null }
+    ];
+
+    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+    html += '<thead><tr style="background: #f8f9fa;">';
+    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Queue</th>';
+    html += '<th style="text-align: center; padding: 8px; border-bottom: 2px solid #dee2e6;">Total Calls</th>';
+    html += '<th style="text-align: center; padding: 8px; border-bottom: 2px solid #dee2e6;">Answered</th>';
+    html += '<th style="text-align: center; padding: 8px; border-bottom: 2px solid #dee2e6;">Missed</th>';
+    html += '<th style="text-align: center; padding: 8px; border-bottom: 2px solid #dee2e6;">Miss Rate</th>';
+    html += '</tr></thead><tbody>';
+
+    let totalAll = 0, answeredAll = 0, missedAll = 0;
+
+    queues.forEach(queue => {
+        let queueCalls;
+        if (queue.filter === null) {
+            queueCalls = inCalls.filter(c => !c.queueName);
+        } else {
+            queueCalls = inCalls.filter(c => c.queueName === queue.filter);
+        }
+        
+        const total = queueCalls.length;
+        const missed = queueCalls.filter(c => !c.TimeToAnswer || c.TimeToAnswer === 0).length;
+        const answered = total - missed;
+        const missRate = total > 0 ? ((missed / total) * 100).toFixed(1) : 0;
+        
+        totalAll += total;
+        answeredAll += answered;
+        missedAll += missed;
+
+        const rateColor = parseFloat(missRate) > 10 ? '#e53e3e' : (parseFloat(missRate) > 5 ? '#f57c00' : 'inherit');
+        
+        html += '<tr style="border-bottom: 1px solid #dee2e6;">';
+        html += '<td style="text-align: left; padding: 8px;">' + queue.name + '</td>';
+        html += '<td style="text-align: center; padding: 8px;">' + total + '</td>';
+        html += '<td style="text-align: center; padding: 8px; color: #27ae60;">' + answered + '</td>';
+        html += '<td style="text-align: center; padding: 8px; color: ' + (missed > 0 ? '#e53e3e' : 'inherit') + ';">' + missed + '</td>';
+        html += '<td style="text-align: center; padding: 8px; font-weight: 600; color: ' + rateColor + ';">' + missRate + '%</td>';
+        html += '</tr>';
+    });
+
+    const totalMissRate = totalAll > 0 ? ((missedAll / totalAll) * 100).toFixed(1) : 0;
+    html += '<tr style="background: #f8f9fa; font-weight: 600;">';
+    html += '<td style="text-align: left; padding: 8px;">TOTAL</td>';
+    html += '<td style="text-align: center; padding: 8px;">' + totalAll + '</td>';
+    html += '<td style="text-align: center; padding: 8px; color: #27ae60;">' + answeredAll + '</td>';
+    html += '<td style="text-align: center; padding: 8px; color: ' + (missedAll > 0 ? '#e53e3e' : 'inherit') + ';">' + missedAll + '</td>';
+    html += '<td style="text-align: center; padding: 8px;">' + totalMissRate + '%</td>';
+    html += '</tr>';
+
+    html += '</tbody></table>';
+
+    document.getElementById('missedByQueue').innerHTML = html;
+}
+
 function updateStaffTable(data) {
     // Apply location filter
     const locationFilteredData = filterByLocation(data, currentLocationFilter);
@@ -1688,7 +1888,7 @@ function updateWeekTrendChart() {
             ? answeredCalls.reduce((sum, c) => sum + (c.TimeToAnswer || 0), 0) / answeredCalls.length
             : 0;
 
-        return { total, missedPct, avgWait };
+        return { total, missed, missedPct, avgWait };
     });
 
     const labels = availableWeeks.map(w => w.label.replace('Week of ', ''));
@@ -1747,6 +1947,21 @@ function updateWeekTrendChart() {
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
                     borderWidth: 3
+                },
+                {
+                    label: 'Missed Calls',
+                    data: weeklyData.map(w => w.missed),
+                    borderColor: '#e53e3e',
+                    backgroundColor: 'rgba(229, 62, 62, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 9,
+                    pointBackgroundColor: '#e53e3e',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 3,
+                    fill: true
                 }
             ]
         },

@@ -54,6 +54,8 @@
                     <option value="crace">Crace</option>
                     <option value="denman">Denman</option>
                     <option value="lyneham">Lyneham</option>
+                    <option value="practice">Practice Support</option>
+                    <option value="management">Management / Support</option>
                 </select>
             </div>
         </div>
@@ -332,6 +334,38 @@
             </div>
         </div>
 
+        <!-- Missed Calls Heatmaps -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Missed Calls Analysis</h2>
+            </div>
+            <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
+                <span>Low</span>
+                <div style="width: 120px; height: 12px; background: linear-gradient(to right, #fff5f5, #feb2b2, #e53e3e, #742a2a); border-radius: 2px;"></div>
+                <span>High</span>
+            </div>
+            <div class="heatmap-container">
+                <div class="heatmap-column">
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Calls (Count)</h3>
+                    <div class="heatmap-wrapper">
+                        <div class="heatmap" id="heatmapMissed"></div>
+                    </div>
+                </div>
+                <div class="heatmap-column">
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Call Rate (%)</h3>
+                    <div class="heatmap-wrapper">
+                        <div class="heatmap" id="heatmapMissedRate"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Missed Calls by Queue -->
+            <div style="margin-top: 20px;">
+                <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Calls by Queue</h3>
+                <div id="missedByQueue"></div>
+            </div>
+        </div>
+
         <!-- Staff Performance -->
         <div class="section">
             <div class="section-header">
@@ -343,6 +377,8 @@
                         <option value="crace">Crace</option>
                         <option value="denman">Denman</option>
                         <option value="lyneham">Lyneham</option>
+                        <option value="practice">Practice Support</option>
+                        <option value="management">Management / Support</option>
                     </select>
                 </div>
             </div>
