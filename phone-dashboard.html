@@ -19,116 +19,244 @@
                     <label for="fileInput">Upload from Computer</label>
                 </div>
                 <button class="btn onedrive-btn" id="oneDriveBtn" onclick="launchOneDrivePicker()">
-                    Load Phone Data
+                    Load from SharePoint
                 </button>
             </div>
             <div class="week-info" id="weekInfo">No data loaded</div>
-            <div class="date-range-picker">
-                <label>From:</label>
-                <input type="date" id="dateFrom" onchange="setDateRange()">
-                <label>To:</label>
-                <input type="date" id="dateTo" onchange="setDateRange()">
+
+            <!-- Primary filters (always visible) -->
+            <div class="primary-filters">
+                <div class="service-level-selector">
+                    <label for="globalLocationFilter">Location:</label>
+                    <select id="globalLocationFilter" onchange="setGlobalLocation()">
+                        <option value="all">All Locations</option>
+                        <option value="crace">Crace</option>
+                        <option value="denman">Denman</option>
+                        <option value="lyneham">Lyneham</option>
+                        <option value="practice">Practice Support</option>
+                        <option value="management">Management / Support</option>
+                    </select>
+                </div>
+                <div class="service-level-selector">
+                    <label for="weekSelector">Week:</label>
+                    <select id="weekSelector" onchange="setWeekFilter()">
+                        <option value="all">All Weeks</option>
+                    </select>
+                </div>
+                <label class="toggle-label" title="Show weekly averages instead of totals">
+                    <input type="checkbox" id="avgToggle" onchange="toggleWeeklyAverages()">
+                    <span>Weekly Avg</span>
+                </label>
+                <button class="btn reset-btn" onclick="resetAllFilters()" title="Reset all filters to defaults">Reset Filters</button>
             </div>
-            <div class="service-level-selector">
-                <label for="weekSelector">Week:</label>
-                <select id="weekSelector" onchange="setWeekFilter()">
-                    <option value="all">All Weeks</option>
-                </select>
-            </div>
-            <label class="toggle-label" title="Show weekly averages instead of totals">
-                <input type="checkbox" id="avgToggle" onchange="toggleWeeklyAverages()">
-                <span>Weekly Avg</span>
-            </label>
-            <div class="view-toggle" id="queueToggle">
-                <button class="btn active" id="queueAll" onclick="setQueueFilter('all')">All</button>
-                <button class="btn" id="queueAppointments" onclick="setQueueFilter('appointments')">Appointments</button>
-                <button class="btn" id="queueVasectomy" onclick="setQueueFilter('vasectomy')">Vasectomy</button>
-                <button class="btn" id="queueGeneral" onclick="setQueueFilter('general')">General</button>
-                <button class="btn" id="queueHealth" onclick="setQueueFilter('health')">Health Pro</button>
-                <button class="btn" id="queueNone" onclick="setQueueFilter('noqueue')">No Queue</button>
-            </div>
-            <div class="service-level-selector">
-                <label for="globalLocationFilter">Location:</label>
-                <select id="globalLocationFilter" onchange="setGlobalLocation()">
-                    <option value="all">All Locations</option>
-                    <option value="crace">Crace</option>
-                    <option value="denman">Denman</option>
-                    <option value="lyneham">Lyneham</option>
-                    <option value="practice">Practice Support</option>
-                    <option value="management">Management / Support</option>
-                </select>
+
+            <!-- Advanced filters (collapsible) -->
+            <button class="btn advanced-toggle" id="advancedToggle" onclick="toggleAdvancedFilters()">
+                <span class="arrow">&#9660;</span> More Filters
+            </button>
+            <div class="advanced-filters" id="advancedFilters">
+                <div class="date-range-picker">
+                    <label>From:</label>
+                    <input type="date" id="dateFrom" onchange="setDateRange()">
+                    <label>To:</label>
+                    <input type="date" id="dateTo" onchange="setDateRange()">
+                </div>
+                <div class="view-toggle" id="queueToggle">
+                    <span class="filter-label">Queue:</span>
+                    <button class="btn active" id="queueAll" onclick="setQueueFilter('all')">All</button>
+                    <button class="btn" id="queueAppointments" onclick="setQueueFilter('appointments')">Appointments</button>
+                    <button class="btn" id="queueVasectomy" onclick="setQueueFilter('vasectomy')">Vasectomy</button>
+                    <button class="btn" id="queueGeneral" onclick="setQueueFilter('general')">General</button>
+                    <button class="btn" id="queueHealth" onclick="setQueueFilter('health')">Health Pro</button>
+                    <button class="btn" id="queueNone" onclick="setQueueFilter('noqueue')">Direct Calls</button>
+                </div>
+                <div class="service-level-selector">
+                    <label for="slTarget">Service Level:</label>
+                    <select id="slTarget" onchange="updateServiceLevelTarget()">
+                        <option value="30">30 seconds</option>
+                        <option value="60">60 seconds</option>
+                        <option value="90" selected>90 seconds</option>
+                        <option value="120">120 seconds</option>
+                    </select>
+                </div>
+                <div class="service-level-selector">
+                    <label for="callbackWindow">Callback Window:</label>
+                    <select id="callbackWindow" onchange="updateCallbackWindow()">
+                        <option value="24" selected>24 hours</option>
+                        <option value="48">2 days</option>
+                        <option value="72">3 days</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="loading">Loading and processing data...</div>
+    <!-- Loading state with progress -->
+    <div id="loading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading and processing data...</div>
+        <div class="loading-step" id="loadingStep"></div>
+    </div>
 
+    <!-- Error display (replaces alerts) -->
+    <div id="errorDisplay" class="error-display" style="display: none;">
+        <div class="error-content">
+            <span class="error-icon">!</span>
+            <span class="error-message" id="errorMessage"></span>
+            <button class="error-close" onclick="hideError()">&times;</button>
+        </div>
+    </div>
+
+    <!-- Empty state with onboarding guide -->
     <div id="noData" class="no-data">
-        <h3>No Data Loaded</h3>
-        <p>Upload CSV files: main export (ExportCallRecords_*.csv) and optionally queue files (CallQueue_Detailed_*.csv).</p>
+        <div class="onboarding-guide">
+            <h2>Welcome to YourGP Phone Dashboard</h2>
+            <p class="subtitle">Analyze call patterns and improve patient experience</p>
+
+            <div class="onboarding-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Export from Telair</h4>
+                        <p>Go to Telair PBX and export your call records (ExportCallRecords_*.csv)</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Load Your Data</h4>
+                        <p>Click "Load from SharePoint" or "Upload from Computer" above</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Explore Insights</h4>
+                        <p>View call patterns, missed calls, and staff performance</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-types">
+                <h4>Supported Files:</h4>
+                <ul>
+                    <li><strong>Main export</strong> - ExportCallRecords_*.csv (required)</li>
+                    <li><strong>Queue files</strong> - CallQueue_Detailed_*.csv (optional, for queue-specific analysis)</li>
+                </ul>
+            </div>
+
+            <button class="btn sample-data-btn" onclick="loadSampleData()">
+                Load Sample Data (Demo)
+            </button>
+        </div>
     </div>
 
     <div id="dashboard" style="display: none;">
+        <!-- Auto-generated Insights Panel -->
+        <div class="insights-panel" id="insightsPanel">
+            <h3>Key Insights</h3>
+            <div class="insights-grid" id="insightsGrid">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
         <!-- Summary Metrics -->
-        <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Note: Statistics are filtered by queue selection above. Hover over cards for explanations.</p>
+        <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">
+            Note: Statistics are filtered by current selections. Click <span class="help-icon" title="More info">?</span> for explanations.
+        </p>
         <div class="metrics-grid" id="metricsGrid">
-            <div class="metric-card" title="Total incoming calls during opening hours">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="help-icon" title="Total incoming calls during opening hours (Mon-Fri 7:30am-5:30pm, Sat 9am-12:30pm)">?</span>
+                </div>
                 <div class="value" id="totalCalls">-</div>
                 <div class="label">Total Calls</div>
             </div>
-            <div class="metric-card success" title="Calls that were picked up by staff">
+            <div class="metric-card answered">
+                <div class="metric-header">
+                    <span class="help-icon" title="Calls that were picked up by staff">?</span>
+                </div>
                 <div class="value" id="answeredCalls">-</div>
                 <div class="label">Answered</div>
             </div>
-            <div class="metric-card danger" title="Calls that entered a queue but were not answered">
+            <div class="metric-card danger">
+                <div class="metric-header">
+                    <span class="help-icon" title="Calls that entered a queue but were not answered - potential lost patients">?</span>
+                </div>
                 <div class="value" id="missedCalls">-</div>
                 <div class="label">Missed</div>
             </div>
-            <div class="metric-card danger" title="Percentage of calls that entered a queue but were missed">
+            <div class="metric-card danger">
+                <div class="metric-header">
+                    <span class="help-icon" title="Percentage of calls that were missed. Target: under 5%">?</span>
+                </div>
                 <div class="value" id="missedPercent">-</div>
                 <div class="label">Missed %</div>
+                <div class="metric-target">Target: &lt;5%</div>
             </div>
-            <div class="metric-card info" title="Percentage of calls answered within the target time (configurable below)">
+            <div class="metric-card info">
+                <div class="metric-header">
+                    <span class="help-icon" title="Percentage of calls answered within the target time. Industry standard: 80% in 90 seconds">?</span>
+                </div>
                 <div class="value" id="serviceLevel">-</div>
                 <div class="label">Service Level</div>
+                <div class="metric-target">Target: 80%</div>
             </div>
-            <div class="metric-card success" title="First Call Resolution - estimated percentage of callers who didn't need to call back within 24 hours">
+            <div class="metric-card answered">
+                <div class="metric-header">
+                    <span class="help-icon" title="First Call Resolution - estimated percentage of callers who didn't need to call back. Higher is better.">?</span>
+                </div>
                 <div class="value" id="fcrRate">-</div>
                 <div class="label">FCR (Est.)</div>
             </div>
-            <div class="metric-card warning" title="Percentage of unique callers who called more than once within 24 hours">
+            <div class="metric-card warning">
+                <div class="metric-header">
+                    <span class="help-icon" title="Percentage of unique callers who called more than once. Lower is better.">?</span>
+                </div>
                 <div class="value" id="callbackRate">-</div>
                 <div class="label">Callback Rate</div>
             </div>
-            <div class="metric-card" title="Average time callers waited before being answered">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="help-icon" title="Average time callers waited before being answered">?</span>
+                </div>
                 <div class="value" id="avgWait">-</div>
                 <div class="label">Avg Wait</div>
             </div>
-            <div class="metric-card" title="Longest wait time for any answered call in this period">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="help-icon" title="Longest wait time for any answered call in this period">?</span>
+                </div>
                 <div class="value" id="maxWait">-</div>
                 <div class="label">Max Wait</div>
             </div>
-            <div class="metric-card" title="Average duration of answered calls (excluding ring time)">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="help-icon" title="Average duration of answered calls (excluding ring time)">?</span>
+                </div>
                 <div class="value" id="avgCallLength">-</div>
                 <div class="label">Avg Call Length</div>
             </div>
-            <div class="metric-card purple" title="Incoming calls received outside business hours (not included in other metrics)">
+            <div class="metric-card purple">
+                <div class="metric-header">
+                    <span class="help-icon" title="Incoming calls received outside business hours (not included in other metrics)">?</span>
+                </div>
                 <div class="value" id="outOfHoursCalls">-</div>
                 <div class="label">Out of Hours</div>
             </div>
         </div>
 
-        <!-- Service Level Target Selector -->
-        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
-            <div class="service-level-selector">
-                <label for="slTarget">Service Level Target:</label>
-                <select id="slTarget" onchange="updateServiceLevelTarget()">
-                    <option value="30">30 seconds</option>
-                    <option value="60">60 seconds</option>
-                    <option value="90" selected>90 seconds</option>
-                    <option value="120">120 seconds</option>
-                </select>
-            </div>
+        <!-- Export buttons -->
+        <div class="export-bar">
+            <button class="btn export-btn" onclick="exportToPDF()">
+                <span class="export-icon">&#128196;</span> Export PDF
+            </button>
+            <button class="btn export-btn" onclick="exportToCSV()">
+                <span class="export-icon">&#128203;</span> Export CSV
+            </button>
+            <button class="btn export-btn" onclick="window.print()">
+                <span class="export-icon">&#128424;</span> Print
+            </button>
         </div>
 
         <!-- Hourly Trend and Abandonment Analysis -->
@@ -165,14 +293,6 @@
         <div class="section">
             <div class="section-header">
                 <h2 id="followupHeader">Missed Call Follow-up (24h Window)</h2>
-                <div class="service-level-selector">
-                    <label for="callbackWindow">Window:</label>
-                    <select id="callbackWindow" onchange="updateCallbackWindow()">
-                        <option value="24" selected>24 hours</option>
-                        <option value="48">2 days</option>
-                        <option value="72">3 days</option>
-                    </select>
-                </div>
             </div>
             <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">What happens to callers whose first call was missed?</p>
 
@@ -209,29 +329,36 @@
             </div>
         </div>
 
-        <!-- Week-over-Week Trends -->
+        <!-- Week-over-Week Trends - Split into two charts -->
         <div class="section" id="weekTrendsSection" style="display: none;">
             <h2>Week-over-Week Trends</h2>
             <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Shows trends when multiple weeks of data are loaded</p>
-            <div class="chart-container">
-                <canvas id="weekTrendChart"></canvas>
+            <div class="two-col-grid">
+                <div class="chart-container">
+                    <h4 style="font-size: 13px; color: #495057; margin-bottom: 10px;">Call Volume</h4>
+                    <canvas id="weekTrendVolumeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h4 style="font-size: 13px; color: #495057; margin-bottom: 10px;">Quality Metrics</h4>
+                    <canvas id="weekTrendQualityChart"></canvas>
+                </div>
             </div>
         </div>
 
         <!-- Site Breakdown -->
         <div class="section">
             <h2>Site Breakdown</h2>
-            <table id="siteTable">
+            <table id="siteTable" class="sortable-table">
                 <thead>
                     <tr>
-                        <th style="text-align: left;">Site</th>
-                        <th>Total Calls</th>
-                        <th>Answered</th>
-                        <th>Missed</th>
-                        <th>Missed %</th>
-                        <th>Avg Wait</th>
-                        <th>Max Wait</th>
-                        <th>Avg Call Length</th>
+                        <th style="text-align: left;" data-sort="name">Site</th>
+                        <th data-sort="total">Total Calls</th>
+                        <th data-sort="answered">Answered</th>
+                        <th data-sort="missed">Missed</th>
+                        <th data-sort="missedPct">Missed %</th>
+                        <th data-sort="avgWait">Avg Wait</th>
+                        <th data-sort="maxWait">Max Wait</th>
+                        <th data-sort="avgLength">Avg Call Length</th>
                     </tr>
                 </thead>
                 <tbody id="siteTableBody"></tbody>
@@ -264,10 +391,10 @@
             </table>
         </div>
 
-        <!-- Heatmaps -->
+        <!-- Heatmaps with Tabs -->
         <div class="section">
             <div class="section-header">
-                <h2>Call Volume Heatmaps (7:30 AM - 5:30 PM)</h2>
+                <h2>Heatmaps (7:30 AM - 5:30 PM)</h2>
                 <div class="service-level-selector">
                     <label for="heatmapLocationFilter">Location:</label>
                     <select id="heatmapLocationFilter" onchange="updateHeatmapLocation()">
@@ -278,91 +405,104 @@
                     </select>
                 </div>
             </div>
-            <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
-                <span>Low</span>
-                <div style="display: flex; gap: 2px;">
-                    <div style="width: 20px; height: 14px; background: #e3f2fd; border-radius: 2px;"></div>
-                    <div style="width: 20px; height: 14px; background: #90caf9; border-radius: 2px;"></div>
-                    <div style="width: 20px; height: 14px; background: #42a5f5; border-radius: 2px;"></div>
-                    <div style="width: 20px; height: 14px; background: #1565c0; border-radius: 2px;"></div>
-                </div>
-                <span>High</span>
-            </div>
-            <div class="heatmap-container">
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #1565c0; font-weight: 600;">Calls In</h3>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap" id="heatmapIn"></div>
-                    </div>
-                </div>
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #7cb342; font-weight: 600;">Calls Out</h3>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap" id="heatmapOut"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Wait Time Heatmaps -->
-        <div class="section">
-            <h2>Wait Time Heatmaps (7:30 AM - 5:30 PM)</h2>
-            <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Incoming calls only. Hover over cells for exact times.</p>
-            <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
-                <span>&lt;30s</span>
-                <div style="display: flex; gap: 2px;">
-                    <div style="width: 20px; height: 14px; background: #e8f5e9; border-radius: 2px;"></div>
-                    <div style="width: 20px; height: 14px; background: #fff3e0; border-radius: 2px;"></div>
-                    <div style="width: 20px; height: 14px; background: #ffab91; border-radius: 2px;"></div>
-                    <div style="width: 20px; height: 14px; background: #c62828; border-radius: 2px;"></div>
-                </div>
-                <span>&gt;5min</span>
+            <!-- Heatmap Tabs -->
+            <div class="heatmap-tabs">
+                <button class="heatmap-tab active" data-tab="volume" onclick="switchHeatmapTab('volume')">
+                    Call Volume
+                </button>
+                <button class="heatmap-tab" data-tab="wait" onclick="switchHeatmapTab('wait')">
+                    Wait Times
+                </button>
+                <button class="heatmap-tab" data-tab="missed" onclick="switchHeatmapTab('missed')">
+                    Missed Calls
+                </button>
             </div>
-            <div class="heatmap-container">
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #c62828; font-weight: 600;">Max Wait Time</h3>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap" id="heatmapMaxWait"></div>
-                    </div>
-                </div>
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #f57c00; font-weight: 600;">Avg Wait Time</h3>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap" id="heatmapAvgWait"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Missed Calls Heatmaps -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Missed Calls Analysis</h2>
-            </div>
-            <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
-                <span>Low</span>
-                <div style="width: 120px; height: 12px; background: linear-gradient(to right, #fff5f5, #feb2b2, #e53e3e, #742a2a); border-radius: 2px;"></div>
-                <span>High</span>
-            </div>
-            <div class="heatmap-container">
-                <div class="heatmap-column">
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Calls (Count)</h3>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap" id="heatmapMissed"></div>
+            <!-- Volume Heatmaps -->
+            <div class="heatmap-tab-content active" id="heatmapTabVolume">
+                <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
+                    <span>Low</span>
+                    <div style="display: flex; gap: 2px;">
+                        <div style="width: 20px; height: 14px; background: #e3f2fd; border-radius: 2px;"></div>
+                        <div style="width: 20px; height: 14px; background: #90caf9; border-radius: 2px;"></div>
+                        <div style="width: 20px; height: 14px; background: #42a5f5; border-radius: 2px;"></div>
+                        <div style="width: 20px; height: 14px; background: #1565c0; border-radius: 2px;"></div>
+                    </div>
+                    <span>High</span>
+                </div>
+                <div class="heatmap-container">
+                    <div>
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #1565c0; font-weight: 600;">Calls In</h3>
+                        <div class="heatmap-wrapper">
+                            <div class="heatmap" id="heatmapIn"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #7cb342; font-weight: 600;">Calls Out</h3>
+                        <div class="heatmap-wrapper">
+                            <div class="heatmap" id="heatmapOut"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="heatmap-column">
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Call Rate (%)</h3>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap" id="heatmapMissedRate"></div>
+            </div>
+
+            <!-- Wait Time Heatmaps -->
+            <div class="heatmap-tab-content" id="heatmapTabWait">
+                <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Incoming calls only. Hover over cells for exact times.</p>
+                <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
+                    <span>&lt;30s</span>
+                    <div style="display: flex; gap: 2px;">
+                        <div style="width: 20px; height: 14px; background: #e8f5e9; border-radius: 2px;"></div>
+                        <div style="width: 20px; height: 14px; background: #fff3e0; border-radius: 2px;"></div>
+                        <div style="width: 20px; height: 14px; background: #ffab91; border-radius: 2px;"></div>
+                        <div style="width: 20px; height: 14px; background: #c62828; border-radius: 2px;"></div>
+                    </div>
+                    <span>&gt;5min</span>
+                </div>
+                <div class="heatmap-container">
+                    <div>
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #c62828; font-weight: 600;">Max Wait Time</h3>
+                        <div class="heatmap-wrapper">
+                            <div class="heatmap" id="heatmapMaxWait"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #f57c00; font-weight: 600;">Avg Wait Time</h3>
+                        <div class="heatmap-wrapper">
+                            <div class="heatmap" id="heatmapAvgWait"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Missed Calls by Queue -->
-            <div style="margin-top: 20px;">
-                <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Calls by Queue</h3>
-                <div id="missedByQueue"></div>
+
+            <!-- Missed Calls Heatmaps -->
+            <div class="heatmap-tab-content" id="heatmapTabMissed">
+                <div class="heatmap-legend" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 11px; color: #6c757d;">
+                    <span>Low</span>
+                    <div style="width: 120px; height: 12px; background: linear-gradient(to right, #fff5f5, #feb2b2, #e53e3e, #742a2a); border-radius: 2px;"></div>
+                    <span>High</span>
+                </div>
+                <div class="heatmap-container">
+                    <div class="heatmap-column">
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Calls (Count)</h3>
+                        <div class="heatmap-wrapper">
+                            <div class="heatmap" id="heatmapMissed"></div>
+                        </div>
+                    </div>
+                    <div class="heatmap-column">
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Call Rate (%)</h3>
+                        <div class="heatmap-wrapper">
+                            <div class="heatmap" id="heatmapMissedRate"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Missed Calls by Queue -->
+                <div style="margin-top: 20px;">
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #e53e3e; font-weight: 600;">Missed Calls by Queue</h3>
+                    <div id="missedByQueue"></div>
+                </div>
             </div>
         </div>
 
@@ -382,16 +522,16 @@
                     </select>
                 </div>
             </div>
-            <table id="staffTable">
+            <table id="staffTable" class="sortable-table">
                 <thead>
                     <tr>
-                        <th style="text-align: left;">Staff Member</th>
-                        <th>Calls In</th>
-                        <th>Calls Out</th>
-                        <th>Total Calls</th>
-                        <th>Avg Pickup Time</th>
-                        <th>Avg Call In</th>
-                        <th>Avg Call Out</th>
+                        <th style="text-align: left;" data-sort="name">Staff Member</th>
+                        <th data-sort="in">Calls In</th>
+                        <th data-sort="out">Calls Out</th>
+                        <th data-sort="total">Total Calls</th>
+                        <th data-sort="pickup">Avg Pickup Time</th>
+                        <th data-sort="lengthIn">Avg Call In</th>
+                        <th data-sort="lengthOut">Avg Call Out</th>
                     </tr>
                 </thead>
                 <tbody id="staffTableBody"></tbody>
