@@ -32,19 +32,7 @@ function launchOneDrivePicker() {
         clientId: ONEDRIVE_CLIENT_ID,
         action: "download",
         multiSelect: true,
-        advanced: {
-            filter: ".csv",
-            navigation: {
-                entryLocation: {
-                    sharePoint: {
-                        sitePath: "/sites/OperationsUnit893",
-                        listPath: "/Shared Documents",
-                        itemPath: "/Ops Dashboard/Phone Dashboard"
-                    }
-                },
-                sourceTypes: ["SharePoint"]
-            }
-        },
+        advanced: { filter: ".csv" },
         success: handleOneDriveFiles,
         cancel: function() {
             btn.textContent = 'Load Phone Data';
