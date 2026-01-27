@@ -19,6 +19,7 @@ let dataMaxDate = null;    // Latest date in loaded data
 let hourlyChart = null;
 let weekTrendChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
+let currentHeatmapTab = 'volume'; // 'volume', 'wait', or 'missed'
 
 // OneDrive Configuration - Replace with your Azure App ID
 const ONEDRIVE_CLIENT_ID = "bdf5829d-49a6-4bed-aa55-89bf6ef866bc";
@@ -460,8 +461,8 @@ function getGlobalFilteredData() {
     // Apply queue filter
     if (currentQueueFilter !== 'all') {
         if (currentQueueFilter === 'noqueue') {
-            // Show calls that didn't enter any queue
-            filteredData = filteredData.filter(row => !row.queueName);
+            // Show incoming calls that didn't enter any queue (exclude outgoing)
+            filteredData = filteredData.filter(row => !row.queueName && row.Direction === 'In');
         } else {
             // Map filter values to actual queue names
             const queueMap = {
@@ -1433,6 +1434,25 @@ function updateDailyTable() {
     });
 
     document.getElementById('dailyTableBody').innerHTML = html;
+}
+
+// Switch between heatmap tabs (volume, wait, missed)
+function switchHeatmapTab(tab) {
+    currentHeatmapTab = tab;
+
+    // Update tab buttons
+    document.querySelectorAll('.heatmap-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+
+    // Update tab content
+    document.querySelectorAll('.heatmap-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    const tabMap = { 'volume': 'heatmapTabVolume', 'wait': 'heatmapTabWait', 'missed': 'heatmapTabMissed' };
+    const activeContent = document.getElementById(tabMap[tab]);
+    if (activeContent) activeContent.classList.add('active');
 }
 
 function updateHeatmapLocation() {

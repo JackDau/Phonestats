@@ -204,6 +204,44 @@ tr:hover {
     background: #f8f9fa;
 }
 
+/* Tabbed Heatmaps */
+.heatmap-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.heatmap-tab {
+    background: #e9ecef;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.2s;
+}
+
+.heatmap-tab:hover {
+    background: #dee2e6;
+}
+
+.heatmap-tab.active {
+    background: #1565c0;
+    color: white;
+}
+
+.heatmap-tab-content {
+    display: none;
+}
+
+.heatmap-tab-content.active {
+    display: block;
+}
+
 .heatmap-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
