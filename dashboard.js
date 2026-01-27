@@ -23,7 +23,7 @@ let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 // OneDrive Configuration - Replace with your Azure App ID
 const ONEDRIVE_CLIENT_ID = "bdf5829d-49a6-4bed-aa55-89bf6ef866bc";
 
-// Launch OneDrive File Picker
+// Launch OneDrive File Picker - opens directly to shared SharePoint folder
 function launchOneDrivePicker() {
     const btn = document.getElementById('oneDriveBtn');
     btn.textContent = 'Connecting...';
@@ -32,14 +32,26 @@ function launchOneDrivePicker() {
         clientId: ONEDRIVE_CLIENT_ID,
         action: "download",
         multiSelect: true,
-        advanced: { filter: ".csv" },
+        advanced: {
+            filter: ".csv",
+            navigation: {
+                entryLocation: {
+                    sharePoint: {
+                        sitePath: "/sites/OperationsUnit893",
+                        listPath: "/Shared Documents",
+                        itemPath: "/Ops Dashboard/Phone Dashboard"
+                    }
+                },
+                sourceTypes: ["SharePoint"]
+            }
+        },
         success: handleOneDriveFiles,
         cancel: function() {
-            btn.textContent = 'Open from OneDrive';
+            btn.textContent = 'Load Phone Data';
         },
         error: function(err) {
-            btn.textContent = 'Open from OneDrive';
-            alert('OneDrive error: ' + (err.message || 'Unknown error'));
+            btn.textContent = 'Load Phone Data';
+            alert('Error: ' + (err.message || 'Unknown error'));
         }
     });
 }
@@ -121,7 +133,7 @@ async function handleOneDriveFiles(response) {
         document.getElementById('noData').style.display = 'block';
     }
 
-    document.getElementById('oneDriveBtn').textContent = 'Open from OneDrive';
+    document.getElementById('oneDriveBtn').textContent = 'Load Phone Data';
 }
 
 // Helper function to read CSV from Blob (for OneDrive files)
