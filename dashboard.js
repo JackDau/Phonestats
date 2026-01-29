@@ -1027,8 +1027,8 @@ function updateAbandonmentAnalysis(calls) {
 
     // Distribution buckets
     const buckets = [
-        { label: '<30s', min: 0, max: 30, count: 0 },
-        { label: '30-60s', min: 30, max: 60, count: 0 },
+        { label: '<35s', min: 0, max: 35, count: 0 },
+        { label: '35-60s', min: 35, max: 60, count: 0 },
         { label: '1-2min', min: 60, max: 120, count: 0 },
         { label: '2-5min', min: 120, max: 300, count: 0 },
         { label: '>5min', min: 300, max: Infinity, count: 0 }
