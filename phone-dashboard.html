@@ -39,6 +39,10 @@
                 <input type="checkbox" id="avgToggle" onchange="toggleWeeklyAverages()">
                 <span>Weekly Avg</span>
             </label>
+            <label class="toggle-label" title="Exclude public holidays from statistics">
+                <input type="checkbox" id="holidayToggle" checked onchange="toggleHolidayExclusion()">
+                <span>Excl. Holidays</span>
+            </label>
             <div class="view-toggle" id="queueToggle">
                 <button class="btn active" id="queueAll" onclick="setQueueFilter('all')">All</button>
                 <button class="btn" id="queueAppointments" onclick="setQueueFilter('appointments')">Appointments</button>

@@ -20,6 +20,17 @@ let hourlyChart = null;
 let weekTrendChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
 let currentHeatmapTab = 'volume'; // 'volume', 'wait', or 'missed'
+let excludePublicHolidays = true; // Exclude public holidays from statistics
+let publicHolidays = new Set(); // Set of 'YYYY-MM-DD' strings
+
+// Fallback ACT public holidays if API fails (2025-2026)
+const FALLBACK_HOLIDAYS = [
+    '2025-01-27','2025-03-10','2025-04-18','2025-04-19','2025-04-21',
+    '2025-04-25','2025-05-26','2025-06-09','2025-10-06','2025-12-25','2025-12-26',
+    '2026-01-01','2026-01-26','2026-03-09','2026-04-03','2026-04-04',
+    '2026-04-06','2026-04-27','2026-06-01','2026-06-08','2026-10-05',
+    '2026-12-25','2026-12-28',
+];
 
 // OneDrive Configuration - Replace with your Azure App ID
 const ONEDRIVE_CLIENT_ID = "bdf5829d-49a6-4bed-aa55-89bf6ef866bc";
@@ -113,6 +124,7 @@ async function handleOneDriveFiles(response) {
         const queuedCount = rawData.filter(r => r.queueName).length;
         console.log(`Loaded ${rawData.length} records from OneDrive, ${queuedCount} matched to queues`);
 
+        await loadHolidaysForData(rawData);
         processAndDisplay();
 
     } catch (err) {
@@ -175,10 +187,57 @@ function isInternalCall(row) {
     );
 }
 
+// Fetch public holidays from Nager.Date API for a given year
+async function fetchPublicHolidays(year) {
+    try {
+        const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/AU`);
+        if (!resp.ok) return [];
+        const holidays = await resp.json();
+        return holidays
+            .filter(h => h.global || (h.counties && h.counties.includes('AU-ACT')))
+            .map(h => h.date);
+    } catch (e) {
+        console.warn('Failed to fetch holidays for ' + year, e);
+        return [];
+    }
+}
+
+// Load holidays for all years present in the data
+async function loadHolidaysForData(data) {
+    const dates = data.map(row => getDateObj(row.CallDateTime)).filter(d => d && !isNaN(d));
+    if (dates.length === 0) return;
+
+    const years = [...new Set(dates.map(d => d.getFullYear()))];
+
+    publicHolidays = new Set();
+    for (const year of years) {
+        const fetched = await fetchPublicHolidays(year);
+        fetched.forEach(d => publicHolidays.add(d));
+    }
+
+    if (publicHolidays.size === 0) {
+        FALLBACK_HOLIDAYS.forEach(d => publicHolidays.add(d));
+    }
+
+    console.log(`Loaded ${publicHolidays.size} public holidays for years: ${years.join(', ')}`);
+}
+
+// Check if a date falls on a public holiday
+function isPublicHoliday(dateValue) {
+    const date = getDateObj(dateValue);
+    if (!date) return false;
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return publicHolidays.has(`${year}-${month}-${day}`);
+}
+
 // Opening hours filter - excludes calls outside business hours
 function isWithinOpeningHours(dateValue) {
     const date = getDateObj(dateValue);
     if (!date) return false;
+
+    if (excludePublicHolidays && isPublicHoliday(date)) return false;
 
     const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     const hours = date.getHours();
@@ -274,6 +333,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         console.log(`Loaded ${rawData.length} records from main CSV, ${queuedCount} matched to queues`);
         console.log('Sample record:', rawData[0]);
 
+        await loadHolidaysForData(rawData);
         processAndDisplay();
     } catch (err) {
         console.error('Error reading files:', err);
@@ -685,6 +745,11 @@ function toggleWeeklyAverages() {
     const filteredData = getGlobalFilteredData();
     const incomingCalls = filteredData.filter(row => row.Direction === 'In');
     updateSummaryMetrics(incomingCalls);
+}
+
+function toggleHolidayExclusion() {
+    excludePublicHolidays = document.getElementById('holidayToggle').checked;
+    processAndDisplay();
 }
 
 // Format time slot to display string
