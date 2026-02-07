@@ -1905,8 +1905,18 @@ function updateStaffTable(data) {
 
     // Build table HTML
     let html = '';
-    staffArray.forEach(staff => {
-        html += '<tr>';
+    staffArray.forEach((staff, index) => {
+        const rank = index + 1;
+        let rankBadge = rank;
+        if (rank === 1) rankBadge = '🥇';
+        else if (rank === 2) rankBadge = '🥈';
+        else if (rank === 3) rankBadge = '🥉';
+
+        const isTop3 = index < 3;
+        const rowClass = isTop3 ? 'top-performer' : '';
+
+        html += `<tr class="${rowClass}">`;
+        html += `<td style="text-align: center; font-weight: 600;">${rankBadge}</td>`;
         html += `<td style="text-align: left;">${staff.name}</td>`;
         html += `<td>${staff.callsIn}</td>`;
         html += `<td>${staff.callsOut}</td>`;

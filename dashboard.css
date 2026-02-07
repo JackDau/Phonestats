@@ -604,3 +604,12 @@ tr:hover {
 .toggle-label:hover {
     background: #f8f9fa;
 }
+
+/* Staff table top performer highlighting */
+#staffTable tr.top-performer {
+    background: linear-gradient(90deg, rgba(46, 125, 50, 0.08) 0%, transparent 100%);
+}
+
+#staffTable tr.top-performer td:first-child {
+    border-left: 3px solid #2e7d32;
+}
