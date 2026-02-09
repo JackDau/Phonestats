@@ -101,3 +101,4 @@
 | 1.1.0 | 2026-01 | Date range picker, week selector, heatmap tabs |
 | 1.2.0 | 2026-02 | Public holiday exclusion |
 | 1.3.0 | 2026-02 | Staff rankings, version badge |
+| 1.3.1 | 2026-02 | Fix OneDrive picker (corrupted script tag) |
