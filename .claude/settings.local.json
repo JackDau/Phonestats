@@ -7,7 +7,11 @@
       "Bash(python:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(Start-Sleep -Seconds 15)",
+      "Bash(gh run list:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

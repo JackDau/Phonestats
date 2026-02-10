@@ -11,7 +11,6 @@ let currentGlobalLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (fo
 let currentHeatmapLocation = 'all'; // 'all', 'crace', 'denman', or 'lyneham' (for heatmaps only)
 let availableWeeks = []; // Array of {start: Date, end: Date, label: string}
 let currentWeekFilter = 'all'; // 'all' or week index
-let currentStaffWeekFilter = 'all'; // 'all' or week index (for staff table only)
 let showWeeklyAverages = false; // Toggle for showing weekly averages
 let dateRangeStart = null; // Date object for custom date range filter
 let dateRangeEnd = null;   // Date object for custom date range filter
@@ -454,14 +453,7 @@ function setGlobalLocation() {
 function updateStaffTableFilter() {
     currentLocationFilter = document.getElementById('locationFilter').value;
     if (rawData.length > 0) {
-        // Use date-range-only filtered data for staff table
-        let filteredData;
-        if (currentStaffWeekFilter === 'all') {
-            filteredData = getDateRangeFilteredData();
-        } else {
-            filteredData = getDateRangeFilteredDataForWeek(parseInt(currentStaffWeekFilter));
-        }
-        updateStaffTable(filteredData);
+        updateStaffTable(getDateRangeFilteredData());
     }
 }
 
@@ -717,9 +709,6 @@ function populateWeekSelector() {
             currentWeekFilter = 'all';
         }
     }
-
-    // Reset staff week filter when weeks change
-    currentStaffWeekFilter = 'all';
 }
 
 // Set week filter
@@ -856,15 +845,8 @@ function processAndDisplay() {
     // Update heatmaps
     updateHeatmaps(filteredData);
 
-    // Update staff weekly breakdown and table (use date-range-only filtered data)
-    updateStaffWeeklyBreakdown();
-    let staffData;
-    if (currentStaffWeekFilter === 'all') {
-        staffData = getDateRangeFilteredData();
-    } else {
-        staffData = getDateRangeFilteredDataForWeek(parseInt(currentStaffWeekFilter));
-    }
-    updateStaffTable(staffData);
+    // Update staff table (use date-range-only filtered data)
+    updateStaffTable(getDateRangeFilteredData());
 }
 
 function updateWeekInfo(data) {
@@ -1913,7 +1895,6 @@ function updateStaffTable(data) {
                 name: name,
                 callsIn: 0,
                 callsOut: 0,
-                queueCalls: 0,
                 totalPickupTime: 0,
                 pickupCount: 0,
                 totalCallLengthIn: 0,
@@ -1927,9 +1908,6 @@ function updateStaffTable(data) {
 
         if (row.Direction === 'In') {
             stats.callsIn++;
-            if (row.queueName) {
-                stats.queueCalls++;
-            }
             if (row.TimeToAnswer > 0) {
                 stats.totalPickupTime += row.TimeToAnswer;
                 stats.pickupCount++;
@@ -1953,7 +1931,6 @@ function updateStaffTable(data) {
         .map(s => ({
             ...s,
             totalCalls: s.callsIn + s.callsOut,
-            queueCalls: s.queueCalls,
             avgPickup: s.pickupCount > 0 ? s.totalPickupTime / s.pickupCount : null,
             avgCallLengthIn: s.callLengthCountIn > 0 ? s.totalCallLengthIn / s.callLengthCountIn : null,
             avgCallLengthOut: s.callLengthCountOut > 0 ? s.totalCallLengthOut / s.callLengthCountOut : null
@@ -1976,7 +1953,6 @@ function updateStaffTable(data) {
         html += `<td style="text-align: center; font-weight: 600;">${rankBadge}</td>`;
         html += `<td style="text-align: left;">${staff.name}</td>`;
         html += `<td>${staff.callsIn}</td>`;
-        html += `<td>${staff.queueCalls}</td>`;
         html += `<td>${staff.callsOut}</td>`;
         html += `<td style="font-weight: 600;">${staff.totalCalls}</td>`;
         html += `<td>${formatTime(staff.avgPickup)}</td>`;
@@ -1986,100 +1962,6 @@ function updateStaffTable(data) {
     });
 
     document.getElementById('staffTableBody').innerHTML = html;
-}
-
-// Staff weekly breakdown - shows per-week totals when multiple weeks loaded
-function updateStaffWeeklyBreakdown() {
-    const container = document.getElementById('staffWeeklyBreakdown');
-    if (!container) return;
-
-    // Only show if multiple weeks available
-    if (availableWeeks.length < 2) {
-        container.innerHTML = '';
-        container.style.display = 'none';
-        return;
-    }
-
-    container.style.display = 'block';
-
-    // Calculate totals for each week
-    const weeklyTotals = availableWeeks.map((week, index) => {
-        const weekData = getDateRangeFilteredDataForWeek(index);
-
-        let callsIn = 0;
-        let callsOut = 0;
-        let queueCalls = 0;
-
-        weekData.forEach(row => {
-            if (row.Direction === 'In') {
-                callsIn++;
-                if (row.queueName) queueCalls++;
-            } else if (row.Direction === 'Out') {
-                callsOut++;
-            }
-        });
-
-        return {
-            label: week.label,
-            index: index,
-            callsIn: callsIn,
-            callsOut: callsOut,
-            queueCalls: queueCalls,
-            total: callsIn + callsOut
-        };
-    });
-
-    // Build the breakdown table
-    let html = '<table class="staff-weekly-breakdown">';
-    html += '<thead><tr>';
-    html += '<th>Week</th>';
-    html += '<th>Calls In</th>';
-    html += '<th>Queue Calls</th>';
-    html += '<th>Calls Out</th>';
-    html += '<th>Total</th>';
-    html += '</tr></thead>';
-    html += '<tbody>';
-
-    // Add "All Weeks" row
-    const allSelected = currentStaffWeekFilter === 'all';
-    html += `<tr class="week-row${allSelected ? ' selected' : ''}" onclick="setStaffWeekFilter('all')">`;
-    html += '<td>All Weeks</td>';
-    html += `<td>${weeklyTotals.reduce((sum, w) => sum + w.callsIn, 0)}</td>`;
-    html += `<td>${weeklyTotals.reduce((sum, w) => sum + w.queueCalls, 0)}</td>`;
-    html += `<td>${weeklyTotals.reduce((sum, w) => sum + w.callsOut, 0)}</td>`;
-    html += `<td style="font-weight: 600;">${weeklyTotals.reduce((sum, w) => sum + w.total, 0)}</td>`;
-    html += '</tr>';
-
-    // Add individual week rows
-    weeklyTotals.forEach(week => {
-        const isSelected = currentStaffWeekFilter === String(week.index);
-        html += `<tr class="week-row${isSelected ? ' selected' : ''}" onclick="setStaffWeekFilter('${week.index}')">`;
-        html += `<td>${week.label}</td>`;
-        html += `<td>${week.callsIn}</td>`;
-        html += `<td>${week.queueCalls}</td>`;
-        html += `<td>${week.callsOut}</td>`;
-        html += `<td style="font-weight: 600;">${week.total}</td>`;
-        html += '</tr>';
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
-}
-
-// Set the staff week filter and update the staff table
-function setStaffWeekFilter(weekIndex) {
-    currentStaffWeekFilter = weekIndex;
-    updateStaffWeeklyBreakdown();
-
-    // Get data for selected week
-    let data;
-    if (weekIndex === 'all') {
-        data = getDateRangeFilteredData();
-    } else {
-        data = getDateRangeFilteredDataForWeek(parseInt(weekIndex));
-    }
-
-    updateStaffTable(data);
 }
 
 // Week-over-week trend chart
