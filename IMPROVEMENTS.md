@@ -5,6 +5,7 @@
 - [x] **Public Holiday Exclusion** - Auto-fetch ACT holidays from API, exclude from stats (v1.2.0)
 - [x] **Staff Rankings** - Medal badges for top 3 performers, green highlighting (v1.3.0)
 - [x] **Version Badge** - Display version number in top right corner (v1.3.0)
+- [x] **Staff Queue Calls & Weekly Breakdown** - Show queue calls per staff, weekly breakdown with clickable rows to filter by week, bypasses filters to show all staff (v1.4.0)
 
 ---
 
