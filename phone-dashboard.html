@@ -12,7 +12,7 @@
 <body>
     <div class="header">
         <h1>YourGP Phone Dashboard</h1>
-        <span class="version-badge">v1.3.2</span>
+        <span class="version-badge">v1.4.0</span>
         <div class="controls">
             <div class="file-upload-container">
                 <div class="file-upload">
@@ -80,6 +80,14 @@
             <div class="metric-card" title="Total incoming calls during opening hours">
                 <div class="value" id="totalCalls">-</div>
                 <div class="label">Total Calls</div>
+            </div>
+            <div class="metric-card warning" title="Incoming calls that did not enter any queue. These are direct or transferred calls that bypassed the queue system.">
+                <div class="value" id="noQueueCalls">-</div>
+                <div class="label">No Queue</div>
+            </div>
+            <div class="metric-card" title="Total Calls minus No Queue calls — i.e. calls that reached a queue (plus any other non-no-queue traffic).">
+                <div class="value" id="reachedQueueCalls">-</div>
+                <div class="label">Reached Queue</div>
             </div>
             <div class="metric-card success" title="Calls that were picked up by staff">
                 <div class="value" id="answeredCalls">-</div>

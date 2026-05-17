@@ -872,6 +872,8 @@ function updateWeekInfo(data) {
 
 function updateSummaryMetrics(calls) {
     const total = calls.length;
+    const noQueue = calls.filter(c => !c.queueName && c.Direction === 'In').length;
+    const reachedQueue = total - noQueue;
     const answered = calls.filter(c => c.TimeToAnswer > 0).length;
     // Missed = calls that entered a queue but were not answered
     const missed = calls.filter(c => c.queueName && (!c.TimeToAnswer || c.TimeToAnswer === 0)).length;
@@ -904,16 +906,22 @@ function updateSummaryMetrics(calls) {
 
     // Apply averaging if enabled and viewing all weeks
     let displayTotal = total;
+    let displayNoQueue = noQueue;
+    let displayReachedQueue = reachedQueue;
     let displayAnswered = answered;
     let displayMissed = missed;
 
     if (showWeeklyAverages && currentWeekFilter === 'all' && numWeeks > 1) {
         displayTotal = Math.round(total / numWeeks);
+        displayNoQueue = Math.round(noQueue / numWeeks);
+        displayReachedQueue = Math.round(reachedQueue / numWeeks);
         displayAnswered = Math.round(answered / numWeeks);
         displayMissed = Math.round(missed / numWeeks);
     }
 
     document.getElementById('totalCalls').textContent = displayTotal;
+    document.getElementById('noQueueCalls').textContent = displayNoQueue;
+    document.getElementById('reachedQueueCalls').textContent = displayReachedQueue;
     document.getElementById('answeredCalls').textContent = displayAnswered;
     document.getElementById('missedCalls').textContent = displayMissed;
     document.getElementById('missedPercent').textContent = missedPct + '%';
