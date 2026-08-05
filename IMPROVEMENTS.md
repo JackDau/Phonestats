@@ -107,3 +107,4 @@
 | 1.4.1 | 2026-08-05 | Add .gitignore to keep API credentials out of the published repo |
 | 1.4.2 | 2026-08-05 | Open file picker at the YourGPPartnerHub SharePoint data folder |
 | 1.4.3 | 2026-08-05 | Fix dead Load Phone Data button (entryLocation needs absolute HTTPS URLs) |
+| 1.4.4 | 2026-08-05 | Version asset URLs so browsers stop serving cached dashboard.js |

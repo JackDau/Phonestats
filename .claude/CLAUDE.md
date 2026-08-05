@@ -4,8 +4,13 @@
 
 **IMPORTANT**: After every commit to this project, update the version number:
 
-1. Bump version in `phone-dashboard.html` (line ~15): `<span class="version-badge">vX.X.X</span>`
-2. Add entry to `IMPROVEMENTS.md` version history table
+1. Bump version in `phone-dashboard.html` (line ~18): `<span class="version-badge">vX.X.X</span>`
+2. Bump the **matching `?v=` on both asset tags** in `phone-dashboard.html`:
+   `dashboard.css?v=X.X.X` and `dashboard.js?v=X.X.X`. These must equal the badge.
+   GitHub Pages serves the HTML fresh but browsers cache the unversioned assets,
+   so skipping this ships new HTML against stale JS and the badge lies about
+   which code is actually running.
+3. Add entry to `IMPROVEMENTS.md` version history table
 
 ### Versioning Scheme
 - **Major (X.0.0)**: Breaking changes or major feature overhauls

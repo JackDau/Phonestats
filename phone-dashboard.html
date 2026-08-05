@@ -7,12 +7,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://js.live.net/v7.2/OneDrive.js"></script>
-    <link rel="stylesheet" href="dashboard.css">
+    <!-- ?v= must match the version badge below. Without it browsers keep
+         serving a cached dashboard.js/css against freshly deployed HTML, so
+         the badge advertises a version that isn't actually running. -->
+    <link rel="stylesheet" href="dashboard.css?v=1.4.4">
 </head>
 <body>
     <div class="header">
         <h1>YourGP Phone Dashboard</h1>
-        <span class="version-badge">v1.4.3</span>
+        <span class="version-badge">v1.4.4</span>
         <div class="controls">
             <div class="file-upload-container">
                 <div class="file-upload">
@@ -419,6 +422,6 @@
         </div>
     </div>
 
-    <script src="dashboard.js"></script>
+    <script src="dashboard.js?v=1.4.4"></script>
 </body>
 </html>
