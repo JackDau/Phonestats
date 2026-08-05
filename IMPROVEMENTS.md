@@ -104,3 +104,4 @@
 | 1.3.1 | 2026-02 | Fix OneDrive picker (corrupted script tag) |
 | 1.3.2 | 2026-02 | Remove weekly breakdown table from staff section |
 | 1.4.0 | 2026-05-17 | Add No Queue and Reached Queue metric cards to summary section |
+| 1.4.1 | 2026-08-05 | Add .gitignore to keep API credentials out of the published repo |

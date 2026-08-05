@@ -1,0 +1,5 @@
+# Secrets — this repo is published verbatim via GitHub Pages, so never commit credentials
+claude api.txt
+*.key
+.env
+.env.*
