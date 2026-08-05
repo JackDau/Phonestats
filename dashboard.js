@@ -35,25 +35,56 @@ const FALLBACK_HOLIDAYS = [
 // OneDrive Configuration - Replace with your Azure App ID
 const ONEDRIVE_CLIENT_ID = "bdf5829d-49a6-4bed-aa55-89bf6ef866bc";
 
-// Launch OneDrive File Picker - opens directly to shared SharePoint folder
+// Shared SharePoint folder the picker should open at:
+// https://yourgpcanberra.sharepoint.com/sites/YourGPPartnerHub/Shared Documents/
+//     00 Claude OS/BusinessData/Phone Data/Phone Dashboard Data/Data
+//
+// The SDK v7.2 docs define these three fields but give no examples of the path
+// format, and entryLocation is known to fall back to the user's personal
+// OneDrive without raising an error. If the picker opens in the wrong place,
+// try these alternates in order before concluding it doesn't work:
+//   1. listPath without the leading slash: "Shared Documents"
+//   2. all three as absolute https://yourgpcanberra.sharepoint.com/... URLs
+const SHAREPOINT_ENTRY = {
+    sitePath: "/sites/YourGPPartnerHub",
+    listPath: "/Shared Documents",
+    itemPath: "/00 Claude OS/BusinessData/Phone Data/Phone Dashboard Data/Data"
+};
+
+// Launch OneDrive File Picker, entering at SHAREPOINT_ENTRY
 function launchOneDrivePicker() {
     const btn = document.getElementById('oneDriveBtn');
     btn.textContent = 'Connecting...';
 
-    OneDrive.open({
+    const odOptions = {
         clientId: ONEDRIVE_CLIENT_ID,
         action: "download",
         multiSelect: true,
-        advanced: { filter: ".csv" },
+        advanced: {
+            filter: ".csv",
+            navigation: {
+                entryLocation: { sharePoint: SHAREPOINT_ENTRY },
+                // Valid values are "OneDrive", "Recent" and "Sites" only.
+                // "SharePoint" is not one of them and breaks the picker silently.
+                sourceTypes: "Sites"
+            }
+        },
         success: handleOneDriveFiles,
         cancel: function() {
             btn.textContent = 'Load Phone Data';
         },
         error: function(err) {
             btn.textContent = 'Load Phone Data';
-            alert('Error: ' + (err.message || 'Unknown error'));
+            // Log the whole object - err.message alone is often empty
+            console.error('OneDrive picker error:', err);
+            alert('Error: ' + (err.message || 'Unknown error - see browser console'));
         }
-    });
+    };
+
+    // Landing in the wrong folder is not an error callback, so log the config
+    // to make a silent fallback diagnosable
+    console.log('Opening OneDrive picker with:', odOptions);
+    OneDrive.open(odOptions);
 }
 
 // Handle files selected from OneDrive
