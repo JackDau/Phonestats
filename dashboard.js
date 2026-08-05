@@ -35,20 +35,21 @@ const FALLBACK_HOLIDAYS = [
 // OneDrive Configuration - Replace with your Azure App ID
 const ONEDRIVE_CLIENT_ID = "bdf5829d-49a6-4bed-aa55-89bf6ef866bc";
 
-// Shared SharePoint folder the picker should open at:
-// https://yourgpcanberra.sharepoint.com/sites/YourGPPartnerHub/Shared Documents/
-//     00 Claude OS/BusinessData/Phone Data/Phone Dashboard Data/Data
+// Shared SharePoint folder the picker should open at.
 //
-// The SDK v7.2 docs define these three fields but give no examples of the path
-// format, and entryLocation is known to fall back to the user's personal
-// OneDrive without raising an error. If the picker opens in the wrong place,
-// try these alternates in order before concluding it doesn't work:
-//   1. listPath without the leading slash: "Shared Documents"
-//   2. all three as absolute https://yourgpcanberra.sharepoint.com/... URLs
+// These MUST be absolute https:// URLs. The SDK runs every entryLocation value
+// through validateUrlProtocol, which throws
+//     "uri /sites/... does not match protocol(s): HTTPS"
+// on anything starting with "/". That throw happens synchronously inside
+// OneDrive.open() before the popup is created, so a server-relative path makes
+// the button do nothing at all. The v7.2 docs show these fields as bare
+// "THE-SITE-PATH" placeholders, which is what led two earlier attempts astray.
+const SHAREPOINT_SITE = "https://yourgpcanberra.sharepoint.com/sites/YourGPPartnerHub";
+const SHAREPOINT_LIBRARY = SHAREPOINT_SITE + "/Shared Documents";
 const SHAREPOINT_ENTRY = {
-    sitePath: "/sites/YourGPPartnerHub",
-    listPath: "/Shared Documents",
-    itemPath: "/00 Claude OS/BusinessData/Phone Data/Phone Dashboard Data/Data"
+    sitePath: SHAREPOINT_SITE,
+    listPath: SHAREPOINT_LIBRARY,
+    itemPath: SHAREPOINT_LIBRARY + "/00 Claude OS/BusinessData/Phone Data/Phone Dashboard Data/Data"
 };
 
 // Launch OneDrive File Picker, entering at SHAREPOINT_ENTRY
@@ -84,7 +85,18 @@ function launchOneDrivePicker() {
     // Landing in the wrong folder is not an error callback, so log the config
     // to make a silent fallback diagnosable
     console.log('Opening OneDrive picker with:', odOptions);
-    OneDrive.open(odOptions);
+
+    // OneDrive.open validates its options synchronously and throws rather than
+    // calling the error callback. Uncaught, that leaves the button stuck on
+    // "Connecting..." with no popup and no message - the failure looks like a
+    // dead button. Catch it so a bad config is always visible.
+    try {
+        OneDrive.open(odOptions);
+    } catch (err) {
+        btn.textContent = 'Load Phone Data';
+        console.error('OneDrive.open rejected the picker options:', err);
+        alert('Could not open the file picker: ' + err.message);
+    }
 }
 
 // Handle files selected from OneDrive

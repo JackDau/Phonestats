@@ -3,3 +3,6 @@ claude api.txt
 *.key
 .env
 .env.*
+
+# Browser-automation debug output
+.playwright-mcp/
