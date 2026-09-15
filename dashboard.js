@@ -19,7 +19,7 @@ let dataMaxDate = null;    // Latest date in loaded data
 let hourlyChart = null;
 let weekTrendChart = null;
 let callbackWindowHours = 24; // Default 24 hours for callback/FCR calculations
-let currentHeatmapTab = 'volume'; // 'volume', 'wait', or 'missed'
+let currentHeatmapTab = 'combined'; // 'combined', 'volume', 'wait', or 'missed'
 let excludePublicHolidays = true; // Exclude public holidays from statistics
 let publicHolidays = new Set(); // Set of 'YYYY-MM-DD' strings
 
@@ -1600,7 +1600,7 @@ function switchHeatmapTab(tab) {
         content.classList.remove('active');
     });
 
-    const tabMap = { 'volume': 'heatmapTabVolume', 'wait': 'heatmapTabWait', 'missed': 'heatmapTabMissed' };
+    const tabMap = { 'combined': 'heatmapTabCombined', 'volume': 'heatmapTabVolume', 'wait': 'heatmapTabWait', 'missed': 'heatmapTabMissed' };
     const activeContent = document.getElementById(tabMap[tab]);
     if (activeContent) activeContent.classList.add('active');
 }
@@ -1628,11 +1628,14 @@ function updateHeatmaps(data) {
     // Render wait time heatmaps (incoming calls only)
     renderWaitTimeHeatmap('heatmapMaxWait', inCalls, 'max');
     renderWaitTimeHeatmap('heatmapAvgWait', inCalls, 'avg');
-    
+
     // Render missed calls heatmaps
     const missedCalls = inCalls.filter(c => !c.TimeToAnswer || c.TimeToAnswer === 0);
     renderMissedHeatmap('heatmapMissed', missedCalls, inCalls, 'count');
     renderMissedHeatmap('heatmapMissedRate', missedCalls, inCalls, 'rate');
+
+    // Render combined inbound volume + missed heatmap
+    renderCombinedHeatmap('heatmapCombined', inCalls);
     
     // Update missed calls by queue
     updateMissedByQueue(inCalls);
@@ -1681,6 +1684,68 @@ function renderHeatmap(elementId, calls) {
             const count = counts[slot][day];
             const heatLevel = maxCount > 0 ? Math.min(7, Math.ceil((count / maxCount) * 7)) : 0;
             html += `<div class="heatmap-cell heat-${heatLevel}" title="${count} calls">${count || ''}</div>`;
+        });
+    }
+
+    document.getElementById(elementId).innerHTML = html;
+}
+
+function renderCombinedHeatmap(elementId, inCalls) {
+    // Inbound volume + missed-call counts in the same cell.
+    // Background colored by volume (reuses .heat-N scale); right number red when missed > 0.
+    const startSlot = 15; // 7:30
+    const endSlot = 35;   // 17:30
+    const days = [1, 2, 3, 4, 5, 6]; // Mon-Sat
+    const dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const counts = {};
+    const missed = {};
+    let maxCount = 0;
+
+    for (let slot = startSlot; slot <= endSlot; slot++) {
+        counts[slot] = {};
+        missed[slot] = {};
+        days.forEach(day => {
+            counts[slot][day] = 0;
+            missed[slot][day] = 0;
+        });
+    }
+
+    inCalls.forEach(call => {
+        const day = getDayOfWeek(call.CallDateTime);
+        const slot = getTimeSlot(call.CallDateTime);
+        if (day !== null && slot !== null && days.includes(day) && slot >= startSlot && slot <= endSlot) {
+            counts[slot][day]++;
+            if (counts[slot][day] > maxCount) maxCount = counts[slot][day];
+            // Match the missed-call predicate used in updateHeatmaps()
+            if (!call.TimeToAnswer || call.TimeToAnswer === 0) {
+                missed[slot][day]++;
+            }
+        }
+    });
+
+    let html = '';
+    html += '<div class="heatmap-cell heatmap-header"></div>';
+    days.forEach(day => {
+        html += '<div class="heatmap-cell heatmap-header">' + dayNames[day] + '</div>';
+    });
+
+    for (let slot = startSlot; slot <= endSlot; slot++) {
+        html += '<div class="heatmap-cell heatmap-time">' + formatTimeSlot(slot) + '</div>';
+        days.forEach(day => {
+            const c = counts[slot][day];
+            const m = missed[slot][day];
+            const heatLevel = maxCount > 0 ? Math.min(7, Math.ceil((c / maxCount) * 7)) : 0;
+            const title = c + ' inbound, ' + m + ' missed';
+            let cellContent = '';
+            if (c > 0) {
+                const missClass = m > 0 ? 'combined-missed has-missed' : 'combined-missed';
+                cellContent = '<span class="combined-volume">' + c + '</span>'
+                            + '<span class="combined-sep">|</span>'
+                            + '<span class="' + missClass + '">' + m + '</span>';
+            }
+            html += '<div class="heatmap-cell combined heat-' + heatLevel + '" title="' + title + '">'
+                  + cellContent + '</div>';
         });
     }
 

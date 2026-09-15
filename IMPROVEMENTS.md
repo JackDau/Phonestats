@@ -108,3 +108,4 @@
 | 1.4.2 | 2026-08-05 | Open file picker at the YourGPPartnerHub SharePoint data folder |
 | 1.4.3 | 2026-08-05 | Fix dead Load Phone Data button (entryLocation needs absolute HTTPS URLs) |
 | 1.4.4 | 2026-08-05 | Version asset URLs so browsers stop serving cached dashboard.js |
+| 1.5.0 | 2026-05-20 | Combined Volume & Missed heatmap tab (default) — inbound volume and missed counts in same cell |

@@ -330,6 +330,23 @@ tr:hover {
 .wait-heat-6 { background: #e57373; color: white; }
 .wait-heat-7 { background: #c62828; color: white; font-weight: 600; }
 
+/* Combined volume + missed cell layout (reuses .heat-N background) */
+.heatmap-cell.combined {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+}
+.combined-volume { font-weight: 600; min-width: 14px; text-align: right; }
+.combined-sep { opacity: 0.45; font-weight: 400; }
+.combined-missed { color: #adb5bd; font-weight: 500; min-width: 14px; text-align: left; }
+.combined-missed.has-missed { color: #c53030; font-weight: 700; }
+/* Override the default .heat-N text colors so the red missed number stays visible on dark backgrounds */
+.heatmap-cell.combined.heat-5 .combined-missed.has-missed,
+.heatmap-cell.combined.heat-6 .combined-missed.has-missed,
+.heatmap-cell.combined.heat-7 .combined-missed.has-missed { color: #fff5f5; background: #c53030; padding: 0 4px; border-radius: 3px; }
+
 /* Missed calls heatmap - red gradient */
 .missed-heat-0 { background: #f8f9fa; color: #adb5bd; }
 .missed-heat-1 { background: #fff5f5; color: #c53030; }
