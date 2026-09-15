@@ -523,6 +523,16 @@ function filterByLocation(data, location) {
 }
 
 // Get data filtered by global location and queue filter
+function excludeNoQueueCalls(data) {
+    // Drop inbound calls that never entered a queue (IVR hang-ups, direct
+    // extension dials). They have no TimeToAnswer, so left in they inflate
+    // volume and appear as missed calls. Outbound rows pass through untouched.
+    // When the user has explicitly selected the No Queue filter, keep them so
+    // that view still has something to show.
+    if (currentQueueFilter === 'noqueue') return data;
+    return data.filter(row => row.Direction !== 'In' || row.queueName);
+}
+
 function getGlobalFilteredData() {
     let filteredData = rawData;
 
@@ -1372,7 +1382,7 @@ function updateMissedCallFollowup(calls) {
 }
 
 function updateHourlyChart(data) {
-    const inCalls = data.filter(row => row.Direction === 'In');
+    const inCalls = excludeNoQueueCalls(data).filter(row => row.Direction === 'In');
     const outCalls = data.filter(row => row.Direction === 'Out');
 
     // Hours from 7 to 18 (7 AM to 6 PM)
@@ -1619,6 +1629,10 @@ function updateHeatmaps(data) {
         heatmapData = filterByLocation(data, currentHeatmapLocation);
     }
 
+    // Missed-by-queue table keeps the full list so its No Queue row stays populated
+    const queueTableData = heatmapData;
+    heatmapData = excludeNoQueueCalls(heatmapData);
+
     const inCalls = heatmapData.filter(row => row.Direction === 'In');
     const outCalls = heatmapData.filter(row => row.Direction === 'Out');
 
@@ -1638,7 +1652,7 @@ function updateHeatmaps(data) {
     renderCombinedHeatmap('heatmapCombined', inCalls);
     
     // Update missed calls by queue
-    updateMissedByQueue(inCalls);
+    updateMissedByQueue(queueTableData);
 }
 
 function renderHeatmap(elementId, calls) {
