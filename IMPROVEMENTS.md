@@ -110,3 +110,4 @@
 | 1.4.4 | 2026-08-05 | Version asset URLs so browsers stop serving cached dashboard.js |
 | 1.5.0 | 2026-05-20 | Combined Volume & Missed heatmap tab (default) — inbound volume and missed counts in same cell |
 | 1.5.1 | 2026-09-16 | Exclude calls that never reached a queue from inbound heatmaps and hourly chart (No Queue filter still shows them) |
+| 1.5.2 | 2026-09-16 | Combined heatmap: every non-zero missed count uses the red pill, not only on dark cells |

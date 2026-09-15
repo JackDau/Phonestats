@@ -341,11 +341,8 @@ tr:hover {
 .combined-volume { font-weight: 600; min-width: 14px; text-align: right; }
 .combined-sep { opacity: 0.45; font-weight: 400; }
 .combined-missed { color: #adb5bd; font-weight: 500; min-width: 14px; text-align: left; }
-.combined-missed.has-missed { color: #c53030; font-weight: 700; }
-/* Override the default .heat-N text colors so the red missed number stays visible on dark backgrounds */
-.heatmap-cell.combined.heat-5 .combined-missed.has-missed,
-.heatmap-cell.combined.heat-6 .combined-missed.has-missed,
-.heatmap-cell.combined.heat-7 .combined-missed.has-missed { color: #fff5f5; background: #c53030; padding: 0 4px; border-radius: 3px; }
+/* Every non-zero missed count gets the same red pill, whatever the cell background */
+.combined-missed.has-missed { color: #fff5f5; background: #c53030; font-weight: 700; padding: 0 4px; border-radius: 3px; text-align: center; }
 
 /* Missed calls heatmap - red gradient */
 .missed-heat-0 { background: #f8f9fa; color: #adb5bd; }
