@@ -111,3 +111,4 @@
 | 1.5.0 | 2026-05-20 | Combined Volume & Missed heatmap tab (default) — inbound volume and missed counts in same cell |
 | 1.5.1 | 2026-09-16 | Exclude calls that never reached a queue from inbound heatmaps and hourly chart (No Queue filter still shows them) |
 | 1.5.2 | 2026-09-16 | Combined heatmap: every non-zero missed count uses the red pill, not only on dark cells |
+| 1.6.0 | 2026-09-16 | Show actual caller numbers for calls that did not reach a queue (expandable table under the No Queue card) |

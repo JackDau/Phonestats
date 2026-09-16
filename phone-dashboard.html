@@ -10,12 +10,12 @@
     <!-- ?v= must match the version badge below. Without it browsers keep
          serving a cached dashboard.js/css against freshly deployed HTML, so
          the badge advertises a version that isn't actually running. -->
-    <link rel="stylesheet" href="dashboard.css?v=1.5.2">
+    <link rel="stylesheet" href="dashboard.css?v=1.6.0">
 </head>
 <body>
     <div class="header">
         <h1>YourGP Phone Dashboard</h1>
-        <span class="version-badge">v1.5.2</span>
+        <span class="version-badge">v1.6.0</span>
         <div class="controls">
             <div class="file-upload-container">
                 <div class="file-upload">
@@ -132,6 +132,16 @@
                 <div class="value" id="outOfHoursCalls">-</div>
                 <div class="label">Out of Hours</div>
             </div>
+        </div>
+
+        <!-- No Queue caller numbers -->
+        <button class="expand-btn" id="noQueueExpandBtn" onclick="toggleNoQueueCallsList()">
+            <span class="arrow">&#9660;</span> Show Numbers
+        </button>
+
+        <div class="detail-section" id="noQueueCallsSection">
+            <h4>Calls That Did Not Reach a Queue (<span id="noQueueListCount">0</span>)</h4>
+            <div id="noQueueCallsList"></div>
         </div>
 
         <!-- Service Level Target Selector -->
@@ -445,6 +455,6 @@
         </div>
     </div>
 
-    <script src="dashboard.js?v=1.5.2"></script>
+    <script src="dashboard.js?v=1.6.0"></script>
 </body>
 </html>

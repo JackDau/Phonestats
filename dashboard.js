@@ -876,6 +876,7 @@ function processAndDisplay() {
     // Calculate and display metrics
     const incomingCalls = filteredData.filter(row => row.Direction === 'In');
     updateSummaryMetrics(incomingCalls);
+    updateNoQueueCallsList(incomingCalls);
 
     // Update abandonment analysis
     updateAbandonmentAnalysis(incomingCalls);
@@ -988,6 +989,72 @@ function updateSummaryMetrics(calls) {
     // Out of hours calls (uses rawData, not filtered)
     const outOfHours = countOutOfHoursCalls();
     document.getElementById('outOfHoursCalls').textContent = outOfHours;
+}
+
+function updateNoQueueCallsList(calls) {
+    // Inbound calls that never entered a queue, most recent first.
+    // Shows the actual caller number so reception can identify and follow up.
+    const noQueueCalls = calls
+        .filter(c => c.Direction === 'In' && !c.queueName)
+        .map(c => ({ call: c, date: getDateObj(c.CallDateTime) }))
+        .filter(c => c.date)
+        .sort((a, b) => b.date - a.date);
+
+    const countEl = document.getElementById('noQueueListCount');
+    if (countEl) countEl.textContent = noQueueCalls.length;
+
+    const container = document.getElementById('noQueueCallsList');
+    if (!container) return;
+
+    if (noQueueCalls.length === 0) {
+        container.innerHTML = '<p style="color: #95a5a6; font-size: 12px;">No calls in this period bypassed the queue.</p>';
+        return;
+    }
+
+    const DISPLAY_LIMIT = 500;
+    const shown = noQueueCalls.slice(0, DISPLAY_LIMIT);
+
+    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+    html += '<thead><tr style="background: #f8f9fa;">';
+    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Date</th>';
+    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Time</th>';
+    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Number</th>';
+    html += '<th style="text-align: right; padding: 8px; border-bottom: 2px solid #dee2e6;">Duration</th>';
+    html += '</tr></thead><tbody>';
+
+    shown.forEach(({ call, date }) => {
+        const dateStr = date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+        const timeStr = date.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+        const rawNumber = call.OriginNumber;
+        const number = (!rawNumber || rawNumber === '0' || String(rawNumber).toLowerCase() === 'anonymous')
+            ? 'Anonymous'
+            : String(rawNumber);
+        const duration = formatTime(call.CallDuration || 0);
+        html += '<tr style="border-bottom: 1px solid #f1f3f5;">';
+        html += `<td style="padding: 6px 8px;">${dateStr}</td>`;
+        html += `<td style="padding: 6px 8px;">${timeStr}</td>`;
+        html += `<td style="padding: 6px 8px; font-family: monospace;">${number}</td>`;
+        html += `<td style="padding: 6px 8px; text-align: right;">${duration}</td>`;
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+
+    if (noQueueCalls.length > DISPLAY_LIMIT) {
+        html += `<p style="color: #95a5a6; font-size: 11px; margin-top: 8px;">Showing most recent ${DISPLAY_LIMIT} of ${noQueueCalls.length} calls. Narrow the date range to see the rest.</p>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function toggleNoQueueCallsList() {
+    const btn = document.getElementById('noQueueExpandBtn');
+    const details = document.getElementById('noQueueCallsSection');
+    btn.classList.toggle('expanded');
+    details.classList.toggle('visible');
+    btn.innerHTML = btn.classList.contains('expanded')
+        ? '<span class="arrow">&#9660;</span> Hide Numbers'
+        : '<span class="arrow">&#9660;</span> Show Numbers';
 }
 
 function updateSiteBreakdown(calls) {
