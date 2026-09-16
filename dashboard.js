@@ -998,9 +998,17 @@ function escapeHtml(value) {
     }[c]));
 }
 
+function formatNoQueueNumber(call) {
+    const rawNumber = call.OriginNumber;
+    return (!rawNumber || rawNumber === '0' || String(rawNumber).toLowerCase() === 'anonymous')
+        ? 'Anonymous'
+        : String(rawNumber);
+}
+
 function updateNoQueueCallsList(calls) {
-    // Inbound calls that never entered a queue, most recent first.
-    // Shows the actual caller number so reception can identify and follow up.
+    // Inbound calls that never entered a queue, grouped by day (most recent
+    // day first), each day collapsible so reception can drill into a
+    // specific day to identify and follow up on callers.
     const noQueueCalls = calls
         .filter(c => c.Direction === 'In' && !c.queueName)
         .map(c => ({ call: c, date: getDateObj(c.CallDateTime) }))
@@ -1021,37 +1029,64 @@ function updateNoQueueCallsList(calls) {
     const DISPLAY_LIMIT = 500;
     const shown = noQueueCalls.slice(0, DISPLAY_LIMIT);
 
-    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
-    html += '<thead><tr style="background: #f8f9fa;">';
-    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Date</th>';
-    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Time</th>';
-    html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Number</th>';
-    html += '<th style="text-align: right; padding: 8px; border-bottom: 2px solid #dee2e6;">Duration</th>';
-    html += '</tr></thead><tbody>';
-
-    shown.forEach(({ call, date }) => {
-        const dateStr = date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
-        const timeStr = date.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
-        const rawNumber = call.OriginNumber;
-        const number = (!rawNumber || rawNumber === '0' || String(rawNumber).toLowerCase() === 'anonymous')
-            ? 'Anonymous'
-            : String(rawNumber);
-        const duration = formatTime(call.CallDuration || 0);
-        html += '<tr style="border-bottom: 1px solid #f1f3f5;">';
-        html += `<td style="padding: 6px 8px;">${dateStr}</td>`;
-        html += `<td style="padding: 6px 8px;">${timeStr}</td>`;
-        html += `<td style="padding: 6px 8px; font-family: monospace;">${escapeHtml(number)}</td>`;
-        html += `<td style="padding: 6px 8px; text-align: right;">${duration}</td>`;
-        html += '</tr>';
+    // Group into days, preserving the most-recent-first order
+    const dayGroups = [];
+    const dayIndexByKey = {};
+    shown.forEach(entry => {
+        const dayKey = entry.date.toDateString();
+        if (!(dayKey in dayIndexByKey)) {
+            dayIndexByKey[dayKey] = dayGroups.length;
+            dayGroups.push({ date: entry.date, entries: [] });
+        }
+        dayGroups[dayIndexByKey[dayKey]].entries.push(entry);
     });
 
-    html += '</tbody></table>';
+    let html = '';
+    dayGroups.forEach((group, dayIdx) => {
+        const dayLabel = group.date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' });
+        const bodyId = `noQueueDayBody_${dayIdx}`;
+        // First (most recent) day starts expanded, the rest start collapsed
+        const expanded = dayIdx === 0;
+
+        html += `<div class="no-queue-day">`;
+        html += `<button type="button" class="no-queue-day-header${expanded ? ' expanded' : ''}" onclick="toggleNoQueueDay(${dayIdx})">`;
+        html += `<span class="arrow">&#9660;</span> ${escapeHtml(dayLabel)} <span class="no-queue-day-count">(${group.entries.length})</span>`;
+        html += `</button>`;
+        html += `<div class="no-queue-day-body${expanded ? ' visible' : ''}" id="${bodyId}">`;
+        html += '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+        html += '<thead><tr style="background: #f8f9fa;">';
+        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Time</th>';
+        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #dee2e6;">Number</th>';
+        html += '<th style="text-align: right; padding: 8px; border-bottom: 2px solid #dee2e6;">Duration</th>';
+        html += '</tr></thead><tbody>';
+
+        group.entries.forEach(({ call, date }) => {
+            const timeStr = date.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+            const number = formatNoQueueNumber(call);
+            const duration = formatTime(call.CallDuration || 0);
+            html += '<tr style="border-bottom: 1px solid #f1f3f5;">';
+            html += `<td style="padding: 6px 8px;">${timeStr}</td>`;
+            html += `<td style="padding: 6px 8px; font-family: monospace;">${escapeHtml(number)}</td>`;
+            html += `<td style="padding: 6px 8px; text-align: right;">${duration}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div></div>';
+    });
 
     if (noQueueCalls.length > DISPLAY_LIMIT) {
         html += `<p style="color: #95a5a6; font-size: 11px; margin-top: 8px;">Showing most recent ${DISPLAY_LIMIT} of ${noQueueCalls.length} calls. Narrow the date range to see the rest.</p>`;
     }
 
     container.innerHTML = html;
+}
+
+function toggleNoQueueDay(dayIdx) {
+    const body = document.getElementById(`noQueueDayBody_${dayIdx}`);
+    if (!body) return;
+    const header = body.previousElementSibling;
+    body.classList.toggle('visible');
+    if (header) header.classList.toggle('expanded');
 }
 
 function toggleNoQueueCallsList() {

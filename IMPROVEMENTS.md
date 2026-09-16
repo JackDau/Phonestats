@@ -112,3 +112,4 @@
 | 1.5.1 | 2026-09-16 | Exclude calls that never reached a queue from inbound heatmaps and hourly chart (No Queue filter still shows them) |
 | 1.5.2 | 2026-09-16 | Combined heatmap: every non-zero missed count uses the red pill, not only on dark cells |
 | 1.6.0 | 2026-09-16 | Show actual caller numbers for calls that did not reach a queue (expandable table under the No Queue card) |
+| 1.6.1 | 2026-09-16 | Move No Queue caller list to bottom of page, group rows into collapsible per-day tables |
