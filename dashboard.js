@@ -991,6 +991,13 @@ function updateSummaryMetrics(calls) {
     document.getElementById('outOfHoursCalls').textContent = outOfHours;
 }
 
+// Escape a value for safe insertion into HTML built via innerHTML/template strings
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
 function updateNoQueueCallsList(calls) {
     // Inbound calls that never entered a queue, most recent first.
     // Shows the actual caller number so reception can identify and follow up.
@@ -1033,7 +1040,7 @@ function updateNoQueueCallsList(calls) {
         html += '<tr style="border-bottom: 1px solid #f1f3f5;">';
         html += `<td style="padding: 6px 8px;">${dateStr}</td>`;
         html += `<td style="padding: 6px 8px;">${timeStr}</td>`;
-        html += `<td style="padding: 6px 8px; font-family: monospace;">${number}</td>`;
+        html += `<td style="padding: 6px 8px; font-family: monospace;">${escapeHtml(number)}</td>`;
         html += `<td style="padding: 6px 8px; text-align: right;">${duration}</td>`;
         html += '</tr>';
     });
