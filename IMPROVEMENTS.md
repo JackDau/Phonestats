@@ -114,3 +114,4 @@
 | 1.6.0 | 2026-09-16 | Show actual caller numbers for calls that did not reach a queue (expandable table under the No Queue card) |
 | 1.6.1 | 2026-09-16 | Move No Queue caller list to bottom of page, group rows into collapsible per-day tables |
 | 1.6.2 | 2026-11-26 | Add New PBX data requirements document (fields and export format to request from the new phone provider) |
+| 1.7.0 | 2026-11-26 | Add Garema dashboard (garema/) for the YOLO PBX: same look, YOLO column adapter, single queue, Data Check panel (Garema v1.0.0) |

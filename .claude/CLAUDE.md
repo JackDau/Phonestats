@@ -25,6 +25,21 @@
 | `phone-dashboard.html` | Page structure, version badge |
 | `dashboard.css` | All styling |
 | `IMPROVEMENTS.md` | Feature roadmap and version history |
+| `garema/index.html` | Garema dashboard page (YOLO PBX), own version badge |
+| `garema/garema-dashboard.js` | Garema dashboard logic, forked from `dashboard.js` |
+| `garema/yolo-adapter.js` | Converts YOLO export columns into the row shape the dashboard logic expects |
+
+## Garema Dashboard
+
+- Garema (YOLO PBX, single queue) has its own version badge in `garema/index.html`,
+  starting at v1.0.0. When Garema files change, bump that badge and the `?v=` on all
+  three of its asset tags (`../dashboard.css`, `yolo-adapter.js`, `garema-dashboard.js`).
+- It shares `dashboard.css` with the YourGP dashboard so both look the same. A CSS
+  change therefore needs the `?v=` bumped on both pages.
+- `garema-dashboard.js` is a fork of `dashboard.js`. Fixes to shared logic (heatmaps,
+  charts, daily table, staff table) usually need applying to both files.
+- If a YOLO column is not recognised, add its name to `FIELD_ALIASES` in
+  `yolo-adapter.js` rather than changing the dashboard logic.
 
 ## Context
 
